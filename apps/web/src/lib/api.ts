@@ -50,6 +50,10 @@ export const session = {
     localStorage.setItem(STORAGE.access, accessToken);
     localStorage.setItem(STORAGE.refresh, refreshToken);
   },
+  /** Yalnızca site seçimini temizler; oturum açık kalır */
+  clearSite(): void {
+    localStorage.removeItem(STORAGE.site);
+  },
   clear(): void {
     Object.values(STORAGE).forEach((key) => localStorage.removeItem(key));
   },
@@ -83,6 +87,15 @@ async function request<T>(
       body?.errors?.[0]?.message ??
       body?.message ??
       `İstek başarısız (${response.status})`;
+
+    // Seçili site artık yoksa ya da erişim kaldırıldıysa (site silinmiş,
+    // yetki alınmış, başka makinede değişmiş) seçimi temizleyip yeniden
+    // seçtiririz — aksi halde kullanıcı kalıcı hata ekranında kalır.
+    if (response.status === 403 && session.siteId && /site/i.test(message)) {
+      session.clearSite();
+      if (typeof window !== 'undefined') window.location.href = '/giris';
+    }
+
     throw new ApiError(message, response.status, body ?? undefined);
   }
 

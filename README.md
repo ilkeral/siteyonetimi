@@ -102,26 +102,61 @@ Yeni bir tenant modeli eklerken **`packages/db/src/index.ts` içindeki
 Sistem işleri (seed, cron, siteler arası rapor) `runWithoutTenant()` ile filtreyi
 bilinçli olarak devre dışı bırakır.
 
-### İzolasyon testi
+### Uçtan uca testler
+
+Çalışan bir API'ye karşı koşarlar; her ikisi de kendi izole test sitesini kurup
+sonunda siler, demo veriye dokunmaz.
 
 ```bash
-pnpm --filter @sy/api run test:isolation
+pnpm --filter @sy/api run test:isolation   # 12 kontrol — çok kiracılılık sızıntısı
+pnpm --filter @sy/api run test:finance     # 30 kontrol — finans döngüsü
 ```
 
-İki site ve iki kullanıcı kurar, B'nin A'ya hiçbir yoldan erişemediğini doğrular
-(12 kontrol). Prisma eklentisi veya guard bozulursa bu test kırmızıya döner.
+`test:isolation` iki site ve iki kullanıcı kurar, B'nin A'ya hiçbir yoldan
+erişemediğini doğrular. Prisma eklentisi veya guard bozulursa kırmızıya döner.
+
+`test:finance` tüm finans zincirini sınar: tahakkuk → bakiye → kısmi/tam
+tahsilat → avans → gecikme tazminatı (ve çift uygulanmaması) → banka ekstresi →
+ödeme koduyla otomatik eşleştirme → elle eşleştirme → gider faturası →
+pano toplamları → ekstre kapanış bakiyesi.
 
 ## Faz planı
 
 | Faz | Kapsam | Durum |
 |---|---|---|
 | 0 | İskelet, Docker, auth + RBAC, çok kiracılılık, seed, panel kabuğu | ✅ tamam |
-| 1 | Site/daire/kişi CRUD, cari + evrak defteri, aidat, tahsilat, banka eşleştirme, dashboard | sırada |
+| 1 | Kişi/daire yönetimi, cari + evrak defteri, aidat tahakkuku, gecikme tazminatı, tahsilat, banka eşleştirme, pano | ✅ tamam |
 | 2 | İş takibi (Kanban), talep detayı, masraf, anket | |
 | 3 | Sayaç dağıtım sihirbazı, Excel içe aktarma | |
 | 4 | Bildirim motoru (e-posta gerçek; SMS/WhatsApp mock) | |
 | 5 | Sakin portalı | |
 | 6 | Raporlar, PDF, KVKK maskesi, ödeme skoru | |
+
+## Faz 1'de gelen ekranlar
+
+| Yol | Ekran |
+|---|---|
+| `/ozet` | Pano: aidat tahsilat grafiği, gelir/gider dağılımı, ödenecek faturalar, kasa pozisyonu |
+| `/site` | Kişi listesi (A–Z filtresi, daire rozetleri, bakiye, "sadece borçlular") |
+| `/site/[id]` | Kişi kartı: genel bilgiler, daireler, araçlar, cari hesap, talepler, iletişim geçmişi |
+| `/finans` | Cari hesap listesi (tip filtresi, bakiye) |
+| `/finans/cari/[id]` | Cari hesap ekstresi (yürüyen bakiye, devir, yazdır) |
+| `/finans/aidat` | Aidat tahakkuku: kalem tanımı → önizleme → oluştur; geçmiş dönemler |
+| `/finans/tahsilat` | Tahsilat makbuzu + carinin açık borçları |
+| `/finans/banka` | Ekstre yapıştır-yükle, otomatik eşleştirme, bekleyenleri elle bağla |
+
+### Finans çekirdeğinin kuralları
+
+- **Bakiye saklanmaz**, hareketlerden türetilir (`LedgerService.balanceOf`).
+- **Kapatma bağlantısı saklanmaz**: tahsilatlar tek havuz sayılıp borçlara vade
+  sırasıyla (FIFO) uygulanır. Bir tahsilat iptal edilince dağıtım kendiliğinden
+  yeniden hesaplanır.
+- **Evrak iki biçimdedir**: tek hareketli (tahakkuk/fatura — karşı taraf bir
+  gelir/gider kategorisi) ya da çok hareketli (tahsilat/ödeme/virman — borç
+  toplamı alacak toplamına eşit olmak zorunda, değilse reddedilir).
+- **İşlenen evrak değiştirilmez**; düzeltme iptal + yeniden oluşturma ile yapılır.
+- Borcun kime yazılacağı `UnitOccupancy`'nin **tarihli ve rollü** ilişkisinden
+  çözülür: geçmiş bir dönemin tahakkuku o dönemde oturana yazılır.
 
 ## Komutlar
 

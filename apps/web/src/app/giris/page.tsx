@@ -28,6 +28,12 @@ export default function LoginPage() {
         setServerError('Hesabınıza tanımlı bir site bulunmuyor. Yöneticinizle görüşün.');
         return;
       }
+      // Önceki seçim hâlâ geçerliyse doğrudan oraya dön
+      const previous = session.siteId;
+      if (previous && data.sites.some((site) => site.id === previous)) {
+        router.replace('/ozet');
+        return;
+      }
       // Tek siteye yetkiliyse doğrudan gir, değilse seçtir
       if (data.sites.length === 1) {
         session.setSiteId(data.sites[0].id);

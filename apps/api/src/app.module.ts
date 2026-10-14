@@ -8,6 +8,10 @@ import { AuthGuard } from './auth/auth.guard';
 import { TenantInterceptor } from './tenant/tenant.interceptor';
 import { HealthController } from './health/health.controller';
 import { SitesModule } from './sites/sites.module';
+import { FinanceModule } from './finance/finance.module';
+import { PeopleModule } from './people/people.module';
+import { PrismaExceptionFilter } from './common/prisma-exception.filter';
+import { APP_FILTER } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -19,6 +23,8 @@ import { SitesModule } from './sites/sites.module';
     PrismaModule,
     AuthModule,
     SitesModule,
+    FinanceModule,
+    PeopleModule,
   ],
   controllers: [HealthController],
   providers: [
@@ -26,6 +32,8 @@ import { SitesModule } from './sites/sites.module';
     { provide: APP_GUARD, useClass: AuthGuard },
     // Doğrulanan site bilgisini AsyncLocalStorage'a taşır.
     { provide: APP_INTERCEPTOR, useClass: TenantInterceptor },
+    // Prisma hatalarını Türkçe mesajlara çevirir; ham hata sızmaz.
+    { provide: APP_FILTER, useClass: PrismaExceptionFilter },
   ],
 })
 export class AppModule {}

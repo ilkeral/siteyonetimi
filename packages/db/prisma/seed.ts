@@ -323,6 +323,9 @@ async function main(): Promise<void> {
     });
   }
 
+  // ------------------------------------------------------------ finansal geçmiş
+  await seedFinancialHistory(siteId);
+
   // --------------------------------------------------------------------- duyuru
   await prisma.announcement.create({
     data: {
@@ -340,6 +343,255 @@ async function main(): Promise<void> {
   console.log(`  Giriş     : ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);
   console.log(`  Teknik    : teknik@site.local / Teknik1234!`);
   console.log(`  Daire     : ${units.length}, Kişi: ${people.length}, Talep: ${ticketSeeds.length}`);
+}
+
+/**
+ * Son 10 dönemin aidat tahakkuku, tahsilatları ve birkaç gider faturası.
+ *
+ * Gerçekçi bir tablo üretir: her dönem dairelerin çoğu öder, bir kısmı
+ * gecikir, birkaçı hiç ödemez. Böylece panodaki tahsilat grafiği,
+ * gelir/gider dağılımı ve "ödenecek faturalar" kartı dolu gelir.
+ */
+async function seedFinancialHistory(siteId: string): Promise<void> {
+  const DUES_PER_UNIT = 1500;
+  const FIXTURE_PER_UNIT = 250;
+
+  const units = await prisma.unit.findMany({
+    where: { siteId, isActive: true },
+    include: { occupancies: { orderBy: { role: 'asc' } } },
+  });
+  const accounts = await prisma.account.findMany({
+    where: { siteId, type: 'PERSON' },
+    select: { id: true, personId: true },
+  });
+  const accountByPerson = new Map(accounts.map((a) => [a.personId!, a.id]));
+
+  const cash = await prisma.account.findFirstOrThrow({ where: { siteId, type: 'CASH' } });
+  const bank = await prisma.account.findFirstOrThrow({ where: { siteId, type: 'BANK' } });
+  const duesItem = await prisma.duesItem.findFirstOrThrow({ where: { siteId, name: 'Aidat' } });
+  const fixtureItem = await prisma.duesItem.findFirstOrThrow({
+    where: { siteId, name: 'Demirbaş' },
+  });
+  const incomeCategory = await prisma.category.findFirstOrThrow({
+    where: { siteId, kind: 'INCOME', name: 'Aidat Geliri' },
+  });
+
+  const now = new Date();
+  let accrualSeq = 1;
+  let collectionSeq = 1;
+
+  for (let back = 9; back >= 0; back--) {
+    const periodDate = new Date(now.getFullYear(), now.getMonth() - back, 1);
+    const year = periodDate.getFullYear();
+    const month = periodDate.getMonth();
+    const period = `${year}-${String(month + 1).padStart(2, '0')}`;
+    const issueDate = new Date(year, month, 1);
+    const dueDate = new Date(year, month, 15);
+
+    const run = await prisma.duesRun.create({
+      data: {
+        siteId,
+        period,
+        issueDate,
+        dueDate,
+        description: `${period} dönemi aidat tahakkuku`,
+        status: 'POSTED',
+        totalAmount: (DUES_PER_UNIT + FIXTURE_PER_UNIT) * units.length,
+        unitCount: units.length,
+        postedAt: issueDate,
+        lines: {
+          create: [
+            { duesItemId: duesItem.id, amount: DUES_PER_UNIT, distributionMethod: 'EQUAL' },
+            { duesItemId: fixtureItem.id, amount: FIXTURE_PER_UNIT, distributionMethod: 'EQUAL' },
+          ],
+        },
+      },
+    });
+
+    for (const unit of units) {
+      // Kiracı varsa borç kiracıya, yoksa malike (OCCUPANT kuralı)
+      const responsible =
+        unit.occupancies.find((o) => o.role === 'TENANT') ??
+        unit.occupancies.find((o) => o.role === 'OWNER');
+      const accountId = responsible ? accountByPerson.get(responsible.personId) : undefined;
+      if (!accountId) continue;
+
+      await prisma.document.create({
+        data: {
+          siteId,
+          type: 'DUES_ACCRUAL',
+          status: 'POSTED',
+          number: `AID-${year}-${String(accrualSeq++).padStart(6, '0')}`,
+          date: issueDate,
+          dueDate,
+          period,
+          unitId: unit.id,
+          duesRunId: run.id,
+          description: `${period} dönemi aidat`,
+          totalAmount: DUES_PER_UNIT + FIXTURE_PER_UNIT,
+          entries: {
+            create: [
+              {
+                siteId,
+                accountId,
+                categoryId: incomeCategory.id,
+                unitId: unit.id,
+                duesItemId: duesItem.id,
+                date: issueDate,
+                debit: DUES_PER_UNIT,
+                credit: 0,
+                description: 'Aidat',
+              },
+              {
+                siteId,
+                accountId,
+                categoryId: incomeCategory.id,
+                unitId: unit.id,
+                duesItemId: fixtureItem.id,
+                date: issueDate,
+                debit: FIXTURE_PER_UNIT,
+                credit: 0,
+                description: 'Demirbaş',
+              },
+            ],
+          },
+        },
+      });
+
+      // Tahsilat: dönem ne kadar eskiyse o kadar yüksek ödeme oranı
+      const payChance = back >= 2 ? 0.93 : back === 1 ? 0.78 : 0.45;
+      if (rnd() > payChance) continue;
+
+      const full = rnd() > 0.12;
+      const amount = full ? DUES_PER_UNIT + FIXTURE_PER_UNIT : DUES_PER_UNIT;
+      const paidAt = new Date(year, month, int(3, 27));
+      if (paidAt > now) continue;
+
+      const target = rnd() > 0.2 ? bank : cash;
+
+      await prisma.document.create({
+        data: {
+          siteId,
+          type: 'COLLECTION',
+          status: 'POSTED',
+          number: `TAH-${year}-${String(collectionSeq++).padStart(6, '0')}`,
+          date: paidAt,
+          description: `${period} dönemi tahsilatı`,
+          totalAmount: amount,
+          entries: {
+            create: [
+              { siteId, accountId, date: paidAt, debit: 0, credit: amount },
+              { siteId, accountId: target.id, date: paidAt, debit: amount, credit: 0 },
+            ],
+          },
+        },
+      });
+    }
+  }
+
+  // --- Gider faturaları
+  const suppliers = await prisma.account.findMany({ where: { siteId, type: 'SUPPLIER' } });
+  const expenseCategories = await prisma.category.findMany({
+    where: { siteId, kind: 'EXPENSE' },
+  });
+
+  const expenses = [
+    { supplier: 0, category: 'Asansör Bakım', amount: 8400, paid: false, monthsAgo: 0 },
+    { supplier: 1, category: 'Temizlik', amount: 7200, paid: true, monthsAgo: 1 },
+    { supplier: 2, category: 'Elektrik', amount: 12650, paid: true, monthsAgo: 1 },
+    { supplier: 0, category: 'Asansör Bakım', amount: 8400, paid: true, monthsAgo: 2 },
+    { supplier: 1, category: 'Temizlik', amount: 7200, paid: true, monthsAgo: 2 },
+    { supplier: 2, category: 'Elektrik', amount: 15300, paid: true, monthsAgo: 3 },
+  ];
+
+  let expenseSeq = 1;
+  let paymentSeq = 1;
+
+  for (const expense of expenses) {
+    const supplier = suppliers[expense.supplier % suppliers.length];
+    const category =
+      expenseCategories.find((c) => c.name === expense.category) ?? expenseCategories[0];
+    const issuedAt = new Date(now.getFullYear(), now.getMonth() - expense.monthsAgo, int(1, 12));
+    const dueAt = new Date(issuedAt.getTime() + 11 * 86_400_000);
+
+    await prisma.document.create({
+      data: {
+        siteId,
+        type: 'EXPENSE',
+        status: 'POSTED',
+        number: `GID-${issuedAt.getFullYear()}-${String(expenseSeq++).padStart(6, '0')}`,
+        date: issuedAt,
+        dueDate: dueAt,
+        description: `${expense.category} faturası`,
+        totalAmount: expense.amount,
+        entries: {
+          create: [
+            {
+              siteId,
+              accountId: supplier.id,
+              categoryId: category.id,
+              date: issuedAt,
+              debit: 0,
+              credit: expense.amount,
+              description: expense.category,
+            },
+          ],
+        },
+      },
+    });
+
+    if (expense.paid) {
+      const paidAt = new Date(dueAt.getTime() - 2 * 86_400_000);
+      await prisma.document.create({
+        data: {
+          siteId,
+          type: 'PAYMENT',
+          status: 'POSTED',
+          number: `ODM-${paidAt.getFullYear()}-${String(paymentSeq++).padStart(6, '0')}`,
+          date: paidAt,
+          description: `${supplier.name} ödemesi`,
+          totalAmount: expense.amount,
+          entries: {
+            create: [
+              { siteId, accountId: supplier.id, date: paidAt, debit: expense.amount, credit: 0 },
+              { siteId, accountId: bank.id, date: paidAt, debit: 0, credit: expense.amount },
+            ],
+          },
+        },
+      });
+    }
+  }
+
+  // --- Eşleşmeyi bekleyen banka hareketleri (panodaki uyarı kartı için)
+  await prisma.bankTransaction.createMany({
+    data: [
+      {
+        siteId,
+        accountId: bank.id,
+        date: new Date(now.getFullYear(), now.getMonth(), Math.max(1, now.getDate() - 2)),
+        amount: 1750,
+        description: 'FAST GELEN - ACIKLAMA YOK',
+        matchStatus: 'UNMATCHED',
+      },
+      {
+        siteId,
+        accountId: bank.id,
+        date: new Date(now.getFullYear(), now.getMonth(), Math.max(1, now.getDate() - 1)),
+        amount: 1500,
+        description: 'HAVALE  MUSTERI ADI OKUNAMADI',
+        matchStatus: 'UNMATCHED',
+      },
+    ],
+  });
+
+  const totals = await prisma.document.groupBy({
+    by: ['type'],
+    where: { siteId, status: 'POSTED' },
+    _count: true,
+  });
+  console.log(
+    `  finansal geçmiş: ${totals.map((t) => `${t.type}=${t._count}`).join(', ')}`,
+  );
 }
 
 async function createPerson(siteId: string) {

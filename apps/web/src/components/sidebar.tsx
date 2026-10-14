@@ -12,7 +12,7 @@ import clsx from 'clsx';
 export const MENU = [
   { href: '/ozet', label: 'Özet', icon: '▦', ready: true },
   { href: '/site', label: 'Site', icon: '🏢', ready: true },
-  { href: '/finans', label: 'Finans', icon: '₺', ready: false },
+  { href: '/finans', label: 'Finans', icon: '₺', ready: true },
   { href: '/sayac', label: 'Sayaç İşlemleri', icon: '⏱', ready: false },
   { href: '/raporlar', label: 'Raporlar', icon: '📊', ready: false },
   { href: '/guvenlik', label: 'Güvenlik', icon: '🛡', ready: false },

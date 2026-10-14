@@ -9,6 +9,11 @@
 //
 //  PARA BİRİMİ: tüm tutarlar Decimal(18,4), TRY.
 //  BAKİYE: hiçbir yerde saklanmaz; daima LedgerEntry toplamından türetilir.
+//
+//  SİLME DAVRANIŞI: site içi ilişkiler Cascade'dir — bir site silindiğinde
+//  tüm verisi temiz şekilde gider. "Hareketi olan cari silinemez" gibi iş
+//  kuralları veritabanı kısıtıyla değil, uygulama katmanında uygulanır
+//  (bkz. PeopleService.deactivate); böylece site silme kilitlenmez.
 // ===========================================================================
 
 generator client {
@@ -633,7 +638,7 @@ model LedgerEntry {
 
   site     Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
   document Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  account  Account   @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  account  Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
   category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   unit     Unit?     @relation(fields: [unitId], references: [id], onDelete: SetNull)
   duesItem DuesItem? @relation(fields: [duesItemId], references: [id], onDelete: SetNull)
@@ -702,7 +707,7 @@ model DuesRunLine {
   distributionMethod DuesDistributionMethod
 
   duesRun  DuesRun  @relation(fields: [duesRunId], references: [id], onDelete: Cascade)
-  duesItem DuesItem @relation(fields: [duesItemId], references: [id], onDelete: Restrict)
+  duesItem DuesItem @relation(fields: [duesItemId], references: [id], onDelete: Cascade)
 
   @@unique([duesRunId, duesItemId])
 }
@@ -735,7 +740,7 @@ model BankTransaction {
   createdAt     DateTime @default(now())
 
   site            Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  account         Account   @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  account         Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
   matchedDocument Document? @relation(fields: [matchedDocumentId], references: [id], onDelete: SetNull)
 
   @@unique([siteId, accountId, date, amount, reference])

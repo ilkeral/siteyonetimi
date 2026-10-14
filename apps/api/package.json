@@ -8,6 +8,7 @@
     "start": "node dist/main.js",
     "test": "vitest run",
     "test:isolation": "tsx test/tenant-isolation.e2e.ts",
+    "test:finance": "tsx test/finance.e2e.ts",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
