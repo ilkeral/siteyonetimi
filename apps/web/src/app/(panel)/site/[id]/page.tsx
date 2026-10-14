@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { balanceClass, date, dateTime, money } from '@/lib/format';
-import { Badge, Card, EmptyState, ErrorBox, Loading, PageHeader, Table } from '@/components/ui';
+import { Card, EmptyState, ErrorBox, Loading, PageHeader, Table } from '@/components/ui';
 
 interface PersonDetail {
   id: string;
@@ -48,12 +48,12 @@ interface PersonDetail {
 }
 
 const TABS = [
-  { key: 'genel', label: 'Genel Bilgiler' },
-  { key: 'daireler', label: 'Daireler' },
-  { key: 'araclar', label: 'Araçlar' },
-  { key: 'hesap', label: 'Cari Hesap' },
-  { key: 'talepler', label: 'Talepler' },
-  { key: 'iletisim', label: 'İletişim Geçmişi' },
+  { key: 'genel', label: 'Genel Bilgiler', icon: 'person' },
+  { key: 'daireler', label: 'Daireler', icon: 'home' },
+  { key: 'araclar', label: 'Araçlar', icon: 'directions_car' },
+  { key: 'hesap', label: 'Cari Hesap', icon: 'account_balance_wallet' },
+  { key: 'talepler', label: 'Talepler', icon: 'build' },
+  { key: 'iletisim', label: 'İletişim Geçmişi', icon: 'mail_outline' },
 ] as const;
 
 export default function PersonDetailPage() {
@@ -70,92 +70,100 @@ export default function PersonDetailPage() {
   if (!data) return null;
 
   return (
-    <div>
+    <>
       <PageHeader
         title={`${data.firstName} ${data.lastName}`}
         subtitle={data.inLegalAction ? 'İcra takibinde' : 'Kişi kartı'}
         actions={
           <>
-            <span className={`text-sm font-semibold ${balanceClass(data.balanceMinor)}`}>
-              Bakiye: {money(data.balanceMinor)}
+            <span className={`h5 m-0 sy-num ${balanceClass(data.balanceMinor)}`}>
+              {money(data.balanceMinor)}
             </span>
-            <Link href="/site" className="btn-ghost text-xs">
+            <Link href="/site" className="btn btn-outline-secondary btn-sm">
               Listeye dön
             </Link>
           </>
         }
       />
 
-      <div className="card">
-        <nav className="flex gap-1 overflow-x-auto border-b border-slate-100 px-3 pt-2">
-          {TABS.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => setTab(item.key)}
-              className={
-                tab === item.key
-                  ? 'border-b-2 border-brand-600 px-3 py-2 text-sm font-medium text-brand-700'
-                  : 'border-b-2 border-transparent px-3 py-2 text-sm text-slate-500 hover:text-slate-700'
-              }
-            >
-              {item.label}
-            </button>
-          ))}
-        </nav>
+      <div className="card card-shadow">
+        <div className="card-header p-0">
+          <ul className="nav nav-tabs nav-tabs-card">
+            {TABS.map((item) => (
+              <li className="nav-item" key={item.key}>
+                <button
+                  type="button"
+                  className={`nav-link${tab === item.key ? ' active' : ''}`}
+                  onClick={() => setTab(item.key)}
+                >
+                  <i className="material-icons mr-1" style={{ fontSize: 16 }}>
+                    {item.icon}
+                  </i>
+                  {item.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
 
-        <div className="p-5">
+        <div className={tab === 'genel' ? 'card-body' : ''}>
           {tab === 'genel' && (
-            <dl className="grid grid-cols-1 gap-x-10 gap-y-3 text-sm sm:grid-cols-2">
-              <Row label="TC Kimlik No" value={data.nationalId} />
-              <Row label="İletişim dili" value={data.language} />
-              <Row label="Cep telefonu" value={data.phone} />
-              <Row label="2. telefon" value={data.phone2} />
-              <Row label="E-posta" value={data.email} />
-              <Row label="Cari hesap" value={data.account?.name} />
-              <div className="sm:col-span-2">
-                <dt className="mb-1 text-slate-500">Not</dt>
-                <dd className="text-slate-700">{data.note || '—'}</dd>
+            <div className="row">
+              <div className="col-md-6">
+                <Row label="TC Kimlik No" value={data.nationalId} />
+                <Row label="Cep telefonu" value={data.phone} />
+                <Row label="E-posta" value={data.email} />
               </div>
-            </dl>
+              <div className="col-md-6">
+                <Row label="İletişim dili" value={data.language} />
+                <Row label="2. telefon" value={data.phone2} />
+                <Row label="Cari hesap" value={data.account?.name} />
+              </div>
+              <div className="col-12 mt-3">
+                <div className="text-muted small mb-1">Not</div>
+                <div>{data.note || '—'}</div>
+              </div>
+            </div>
           )}
 
           {tab === 'daireler' && (
             <Table
               head={
                 <tr>
-                  <th className="py-2 pr-4">Daire</th>
-                  <th className="px-4 py-2">Blok</th>
-                  <th className="px-4 py-2">Kat</th>
-                  <th className="px-4 py-2">Sıfat</th>
-                  <th className="px-4 py-2">Giriş</th>
-                  <th className="px-4 py-2">Çıkış</th>
-                  <th className="px-4 py-2">Banka Ödeme Kodu</th>
+                  <th>Daire</th>
+                  <th>Blok</th>
+                  <th>Kat</th>
+                  <th>Sıfat</th>
+                  <th>Giriş</th>
+                  <th>Çıkış</th>
+                  <th>Banka Ödeme Kodu</th>
                 </tr>
               }
             >
               {data.occupancies.map((occupancy) => (
                 <tr key={occupancy.id}>
-                  <td className="py-2.5 pr-4 font-medium">{occupancy.unit.doorNumber}</td>
-                  <td className="px-4 py-2.5">{occupancy.unit.block?.name ?? '—'}</td>
-                  <td className="px-4 py-2.5">{occupancy.unit.floor ?? '—'}</td>
-                  <td className="px-4 py-2.5">
-                    <Badge tone={occupancy.role === 'OWNER' ? 'blue' : 'purple'}>
+                  <td className="font-weight-bold">{occupancy.unit.doorNumber}</td>
+                  <td>{occupancy.unit.block?.name ?? '—'}</td>
+                  <td>{occupancy.unit.floor ?? '—'}</td>
+                  <td>
+                    <span
+                      className={`badge ${
+                        occupancy.role === 'OWNER' ? 'badge-primary' : 'badge-purple'
+                      }`}
+                    >
                       {occupancy.role === 'OWNER' ? 'Kat Maliki' : 'Kiracı'}
-                    </Badge>
+                    </span>
                   </td>
-                  <td className="px-4 py-2.5">{date(occupancy.startDate)}</td>
-                  <td className="px-4 py-2.5">
-                    {occupancy.endDate ? date(occupancy.endDate) : '—'}
-                  </td>
-                  <td className="px-4 py-2.5 font-mono text-xs">
-                    {occupancy.bankPaymentCode ?? '—'}
+                  <td>{date(occupancy.startDate)}</td>
+                  <td>{occupancy.endDate ? date(occupancy.endDate) : '—'}</td>
+                  <td>
+                    <code>{occupancy.bankPaymentCode ?? '—'}</code>
                   </td>
                 </tr>
               ))}
               {data.occupancies.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400">
+                  <td colSpan={7} className="text-center text-muted py-4">
                     Daire ilişkisi yok.
                   </td>
                 </tr>
@@ -165,26 +173,26 @@ export default function PersonDetailPage() {
 
           {tab === 'araclar' &&
             (data.vehicles.length === 0 ? (
-              <EmptyState message="Kayıtlı araç yok." />
+              <EmptyState message="Kayıtlı araç yok." icon="directions_car" />
             ) : (
               <Table
                 head={
                   <tr>
-                    <th className="py-2 pr-4">Plaka</th>
-                    <th className="px-4 py-2">Marka</th>
-                    <th className="px-4 py-2">Model</th>
-                    <th className="px-4 py-2">Renk</th>
-                    <th className="px-4 py-2">HGS No</th>
+                    <th>Plaka</th>
+                    <th>Marka</th>
+                    <th>Model</th>
+                    <th>Renk</th>
+                    <th>HGS No</th>
                   </tr>
                 }
               >
                 {data.vehicles.map((vehicle) => (
                   <tr key={vehicle.id}>
-                    <td className="py-2.5 pr-4 font-medium">{vehicle.plate}</td>
-                    <td className="px-4 py-2.5">{vehicle.brand ?? '—'}</td>
-                    <td className="px-4 py-2.5">{vehicle.model ?? '—'}</td>
-                    <td className="px-4 py-2.5">{vehicle.color ?? '—'}</td>
-                    <td className="px-4 py-2.5">{vehicle.hgsNumber ?? '—'}</td>
+                    <td className="font-weight-bold">{vehicle.plate}</td>
+                    <td>{vehicle.brand ?? '—'}</td>
+                    <td>{vehicle.model ?? '—'}</td>
+                    <td>{vehicle.color ?? '—'}</td>
+                    <td>{vehicle.hgsNumber ?? '—'}</td>
                   </tr>
                 ))}
               </Table>
@@ -199,39 +207,46 @@ export default function PersonDetailPage() {
 
           {tab === 'talepler' &&
             (data.tickets.length === 0 ? (
-              <EmptyState message="Talep kaydı yok." />
+              <EmptyState message="Talep kaydı yok." icon="build" />
             ) : (
-              <ul className="divide-y divide-slate-50 text-sm">
+              <div className="list-group list-group-flush">
                 {data.tickets.map((ticket) => (
-                  <li key={ticket.id} className="flex justify-between py-2.5">
+                  <div
+                    key={ticket.id}
+                    className="list-group-item d-flex justify-content-between align-items-center"
+                  >
                     <span>
-                      <span className="text-slate-400">#{ticket.number}</span> {ticket.subject}
+                      <span className="text-muted mr-2">#{ticket.number}</span>
+                      {ticket.subject}
                     </span>
-                    <span className="text-slate-500">{date(ticket.date)}</span>
-                  </li>
+                    <span className="text-muted small">{date(ticket.date)}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
             ))}
 
           {tab === 'iletisim' &&
             (data.messages.length === 0 ? (
-              <EmptyState message="Gönderilmiş bildirim yok." />
+              <EmptyState message="Gönderilmiş bildirim yok." icon="mail_outline" />
             ) : (
-              <ul className="divide-y divide-slate-50 text-sm">
+              <div className="list-group list-group-flush">
                 {data.messages.map((message) => (
-                  <li key={message.id} className="flex justify-between py-2.5">
+                  <div
+                    key={message.id}
+                    className="list-group-item d-flex justify-content-between align-items-center"
+                  >
                     <span>
-                      <Badge>{message.channel}</Badge>{' '}
-                      <span className="ml-1">{message.subject ?? '—'}</span>
+                      <span className="badge badge-secondary mr-2">{message.channel}</span>
+                      {message.subject ?? '—'}
                     </span>
-                    <span className="text-slate-500">{dateTime(message.createdAt)}</span>
-                  </li>
+                    <span className="text-muted small">{dateTime(message.createdAt)}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
             ))}
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -240,65 +255,73 @@ function AccountTab({ accountId }: { accountId: string }) {
     queryKey: ['open-items', accountId],
     queryFn: () =>
       api.get<{
-        items: { documentId: string; number: string; dueDate: string | null; period: string | null; remainingMinor: number }[];
+        items: {
+          documentId: string;
+          number: string;
+          dueDate: string | null;
+          period: string | null;
+          remainingMinor: number;
+        }[];
         totalMinor: number;
         advanceMinor: number;
       }>(`/finance/accounts/${accountId}/open-items`),
   });
 
-  if (isLoading) return <Loading />;
+  if (isLoading) return <div className="card-body"><Loading /></div>;
   if (!data) return null;
 
   return (
-    <div className="space-y-4">
-      <div className="flex gap-6 text-sm">
+    <>
+      <div className="card-body d-flex flex-wrap align-items-center" style={{ gap: '1.5rem' }}>
         <div>
-          <span className="text-slate-500">Açık borç: </span>
-          <strong className="text-red-600">{money(data.totalMinor)}</strong>
+          <div className="text-muted small">Açık borç</div>
+          <strong className="text-danger sy-num">{money(data.totalMinor)}</strong>
         </div>
         <div>
-          <span className="text-slate-500">Avans: </span>
-          <strong className="text-emerald-600">{money(data.advanceMinor)}</strong>
+          <div className="text-muted small">Avans</div>
+          <strong className="text-success sy-num">{money(data.advanceMinor)}</strong>
         </div>
-        <Link href={`/finans/cari/${accountId}`} className="text-brand-700 hover:underline">
-          Ekstreyi aç →
+        <Link href={`/finans/cari/${accountId}`} className="btn btn-outline-primary btn-sm ml-auto">
+          Ekstreyi aç
         </Link>
       </div>
 
       {data.items.length === 0 ? (
-        <EmptyState message="Kapanmamış borç yok." />
+        <EmptyState message="Kapanmamış borç yok." icon="done_all" />
       ) : (
         <Table
           head={
             <tr>
-              <th className="py-2 pr-4">Evrak No</th>
-              <th className="px-4 py-2">Dönem</th>
-              <th className="px-4 py-2">Son Ödeme</th>
-              <th className="px-4 py-2 text-right">Kalan</th>
+              <th>Evrak No</th>
+              <th>Dönem</th>
+              <th>Son Ödeme</th>
+              <th className="text-right">Kalan</th>
             </tr>
           }
         >
           {data.items.map((item) => (
             <tr key={item.documentId}>
-              <td className="py-2.5 pr-4 font-mono text-xs">{item.number}</td>
-              <td className="px-4 py-2.5">{item.period ?? '—'}</td>
-              <td className="px-4 py-2.5">{date(item.dueDate)}</td>
-              <td className="px-4 py-2.5 text-right font-medium text-red-600">
+              <td>
+                <code>{item.number}</code>
+              </td>
+              <td>{item.period ?? '—'}</td>
+              <td>{date(item.dueDate)}</td>
+              <td className="text-right sy-num text-danger font-weight-bold">
                 {money(item.remainingMinor)}
               </td>
             </tr>
           ))}
         </Table>
       )}
-    </div>
+    </>
   );
 }
 
 function Row({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div className="flex justify-between gap-4 border-b border-slate-50 pb-2">
-      <dt className="text-slate-500">{label}</dt>
-      <dd className="font-medium text-slate-800">{value || '—'}</dd>
+    <div className="d-flex justify-content-between border-bottom py-2">
+      <span className="text-muted">{label}</span>
+      <strong>{value || '—'}</strong>
     </div>
   );
 }

@@ -1,0 +1,564 @@
+/* ===========================================================================
+   Site Yönetim — tema üzerine kendi katmanımız
+   ---------------------------------------------------------------------------
+   app.css (Bizzark / Bootstrap 4) OLDUĞU GİBİ bırakılır; buradaki kurallar
+   ondan SONRA yüklenir ve üç işi yapar:
+     1. Sabit navbar + sabit sidebar düzeni (temanın jQuery'li mdk-drawer'ı
+        yerine; React tarafında JS bağımlılığı istemiyoruz)
+     2. Daraltılabilir "mini" sidebar
+     3. Koyu mod (temada yoktu, değişkenlerle kendimiz kuruyoruz)
+   =========================================================================== */
+
+:root {
+  --sy-navbar-h: 56px;
+  --sy-sidebar-w: 250px;
+  --sy-sidebar-mini-w: 64px;
+
+  /* Tema paleti (src/sass/_variables.scss ile birebir) */
+  --sy-primary: #4b98cf;
+  --sy-primary-dark: #346384;
+  --sy-success: #4eb4a5;
+  --sy-warning: #e3aa75;
+  --sy-danger: #dc3545;
+  --sy-dark: #1a3142;
+
+  /* Yüzeyler — koyu modda bunlar değişir, bileşenler hep bunları kullanır */
+  --sy-body-bg: #f6fafc;
+  --sy-surface: #ffffff;
+  --sy-surface-2: #f5f7f9;
+  --sy-border: #dce0e2;
+  --sy-text: #112b4a;
+  --sy-text-muted: rgba(55, 77, 103, 0.54);
+  --sy-sidebar-bg: #4b98cf; /* sidebar-primary */
+  --sy-navbar-bg: #ffffff; /* açık navbar */
+  --sy-brand-bg: #1a3142; /* marka bloğu */
+}
+
+/* ---------------------------------------------------------------- düzen
+
+   ÖZGÜLLÜK NOTU: tema CSS'i RTL desteği için her kuralı `[dir=ltr] .x`
+   biçiminde üretmiş (özgüllük 0,2,0). Bizim `.sy-x` kurallarımız (0,1,0)
+   bunları ezemiyordu — `position: fixed` sessizce `relative`e dönüyor ve
+   sayfa alt alta diziliyordu. Bu yüzden layout kurallarımız da `[dir]`
+   ön ekiyle yazılır: aynı özgüllük + sonra yüklenme = bizim kural kazanır.
+   -------------------------------------------------------------------- */
+
+body {
+  background: var(--sy-body-bg);
+  color: var(--sy-text);
+  overflow-x: hidden;
+}
+
+/* Navbar AÇIK renkte ve sidebar'ın SAĞINDAN başlar; marka bloğu sidebar
+   sütununda, navbar'ın solunda durur (temanın referans görünümü). */
+[dir] .sy-navbar {
+  position: fixed;
+  top: 0;
+  left: var(--sy-sidebar-w);
+  right: 0;
+  z-index: 1030;
+  min-height: var(--sy-navbar-h);
+  height: var(--sy-navbar-h);
+  background: var(--sy-navbar-bg);
+  border-bottom: 1px solid var(--sy-border);
+  padding: 0 0.75rem;
+  margin: 0;
+  flex-wrap: nowrap;
+  transition: left 0.2s ease;
+}
+
+/* Sidebar tepeden başlar: marka bloğu onun içindedir */
+[dir] .sy-sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--sy-sidebar-w);
+  height: auto;
+  z-index: 1035;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Temanın `.sidebar-primary` sabit mavisini değişkene bağlarız; koyu modda
+     sidebar da koyulaşsın diye */
+  background: var(--sy-sidebar-bg);
+  transition: width 0.2s ease, transform 0.2s ease;
+}
+
+/* Marka bloğu — sidebar üstünde koyu lacivert şerit.
+   Özgüllük notu: temanın `[dir=ltr] .sidebar-primary .sidebar-brand-bg`
+   kuralı (0,3,0) saydam siyah bir zemin veriyor; onu geçmek için biz de
+   sidebar sınıfını selektöre dahil ediyoruz. */
+[dir] .sy-sidebar .sy-brandblock,
+[dir] .sy-brandblock {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  height: var(--sy-navbar-h);
+  padding: 0 1rem;
+  margin: 0;
+  background: var(--sy-brand-bg);
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-decoration: none;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+[dir] .sy-brandblock:hover {
+  color: #fff;
+  text-decoration: none;
+}
+
+[dir] .sy-content {
+  margin-left: var(--sy-sidebar-w);
+  padding-top: var(--sy-navbar-h);
+  min-height: 100vh;
+  transition: margin-left 0.2s ease;
+}
+
+[dir] .sy-content__inner {
+  padding: 1.5rem;
+}
+
+/* ----------------------------------------------------------- mini sidebar */
+
+[dir] .sy-mini .sy-sidebar {
+  width: var(--sy-sidebar-mini-w);
+}
+
+[dir] .sy-mini .sy-content {
+  margin-left: var(--sy-sidebar-mini-w);
+}
+
+[dir] .sy-mini .sy-navbar {
+  left: var(--sy-sidebar-mini-w);
+}
+
+[dir] .sy-mini .sy-brandblock {
+  justify-content: center;
+  padding: 0;
+}
+
+.sy-mini .sidebar-menu-text,
+.sy-mini .sidebar-heading,
+.sy-mini .sy-sidebar-footer {
+  display: none;
+}
+
+.sy-mini .sidebar-menu-button {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.sy-mini .sidebar-menu-icon--left {
+  margin-right: 0;
+}
+
+/* Mini modda etiket, üzerine gelince balon olarak çıkar */
+.sy-mini .sidebar-menu-item {
+  position: relative;
+}
+
+.sy-mini .sidebar-menu-item:hover::after {
+  content: attr(data-label);
+  position: absolute;
+  left: calc(100% + 6px);
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  background: var(--sy-dark);
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  z-index: 1040;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------- dar ekran (mobil) */
+
+@media (max-width: 991.98px) {
+  [dir] .sy-sidebar {
+    transform: translate3d(-100%, 0, 0);
+  }
+  [dir] .sy-open .sy-sidebar {
+    transform: translate3d(0, 0, 0);
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.18);
+  }
+  [dir] .sy-content {
+    margin-left: 0;
+  }
+  /* Sidebar çekmeceye dönüştüğü için navbar tam genişlik olur */
+  [dir] .sy-navbar,
+  [dir] .sy-mini .sy-navbar {
+    left: 0;
+  }
+  [dir] .sy-backdrop {
+    position: fixed;
+    inset: var(--sy-navbar-h) 0 0 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1010;
+  }
+}
+
+/* --------------------------------------------------------- küçük rötuşlar */
+
+.sy-brand__mark {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 6px;
+  background: var(--sy-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* ------------------------------------------------- mavi sidebar rötuşları */
+
+[dir] .sy-sidebar .sidebar-heading {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 1.25rem 1rem 0.35rem;
+  margin: 0;
+}
+
+[dir] .sy-sidebar .sidebar-menu-button {
+  color: rgba(255, 255, 255, 0.88);
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+[dir] .sy-sidebar .sidebar-menu-button:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  text-decoration: none;
+}
+
+/* İkonlar daire içinde — aktif öğede dolu daire (referans görünüm) */
+[dir] .sy-sidebar .sidebar-menu-icon--left {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  margin-right: 0.75rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.12);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+[dir] .sy-sidebar .sidebar-menu-item.active > .sidebar-menu-button {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+  font-weight: 700;
+}
+
+[dir] .sy-sidebar .sidebar-menu-item.active > .sidebar-menu-button .sidebar-menu-icon--left {
+  background: #fff;
+  color: var(--sy-primary);
+}
+
+[dir] .sy-sidebar .sidebar-menu-item.disabled > .sidebar-menu-button {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+[dir] .sy-sidebar .sidebar-submenu .sidebar-menu-button {
+  padding-left: 3.9rem;
+  font-size: 0.84rem;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+[dir] .sy-sidebar .sidebar-submenu .sidebar-menu-item.active > .sidebar-menu-button {
+  background: transparent;
+  color: #fff;
+  font-weight: 700;
+}
+
+[dir] .sy-sidebar-footer {
+  padding: 1rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+}
+
+/* ------------------------------------------------------- açık navbar içi */
+
+[dir] .sy-navbar .nav-link,
+[dir] .sy-navbar .btn-link {
+  color: var(--sy-text-muted);
+}
+
+[dir] .sy-navbar .nav-link:hover,
+[dir] .sy-navbar .btn-link:hover {
+  color: var(--sy-text);
+  text-decoration: none;
+}
+
+/* Breadcrumb + büyük başlık bloğu */
+.sy-page-heading__crumb {
+  font-size: 0.8rem;
+  color: var(--sy-text-muted);
+  margin-bottom: 0.15rem;
+}
+
+.sy-page-heading__crumb .material-icons {
+  font-size: 14px;
+  vertical-align: -2px;
+}
+
+/* Hızlı erişim kartları */
+/* `a.sy-quick`: Bootstrap'ın `a` reset'ini geçmek için eleman+sınıf */
+a.sy-quick,
+.sy-quick {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-border);
+  border-radius: 5px;
+  color: var(--sy-text);
+  font-weight: 700;
+  text-decoration: none;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  height: 100%;
+}
+
+.sy-quick:hover {
+  text-decoration: none;
+  color: var(--sy-text);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.sy-quick__icon {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.sy-quick__icon .material-icons {
+  font-size: 20px;
+}
+
+/* Sayfa başlığı bloğu */
+.sy-page-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.sy-page-heading h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.sy-page-heading p {
+  margin: 0.15rem 0 0;
+  color: var(--sy-text-muted);
+  font-size: 0.875rem;
+}
+
+/* Rakamların hizalanması için tablo/kart içi sayısal alanlar */
+.sy-num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sy-stat__label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--sy-text-muted);
+  font-weight: 600;
+}
+
+.sy-stat__value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-top: 0.15rem;
+}
+
+/* A–Z harf filtresi şeridi */
+.sy-letters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--sy-border);
+}
+
+.sy-letters button {
+  border: 0;
+  background: transparent;
+  color: var(--sy-text-muted);
+  font-size: 0.75rem;
+  line-height: 1;
+  padding: 0.25rem 0.4rem;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.sy-letters button:hover {
+  background: var(--sy-surface-2);
+}
+
+.sy-letters button.active {
+  background: var(--sy-primary);
+  color: #fff;
+}
+
+/* Sidebar menü: aktif öğe vurgusu */
+/* Alt menü: temanın varsayılanı display:none; açık öğede gösteririz.
+   (Tema bunu jQuery collapse ile yapıyordu, biz React state'i ile yapıyoruz) */
+[dir] .sidebar-menu-item.open > .sidebar-submenu {
+  display: block;
+}
+
+
+.sidebar-menu-button {
+  cursor: pointer;
+}
+
+/* ===========================================================================
+   KOYU MOD
+   Tema koyu mod ile gelmiyor; yüzey değişkenlerini değiştirip Bootstrap'ın
+   açık renk varsayımlarını hedefli biçimde eziyoruz.
+   =========================================================================== */
+
+html[data-theme='dark'] {
+  --sy-body-bg: #0f1b26;
+  --sy-surface: #15242f;
+  --sy-surface-2: #1b2d3a;
+  --sy-border: #263a49;
+  --sy-text: #e3ecf2;
+  --sy-text-muted: rgba(227, 236, 242, 0.56);
+  /* Koyu modda mavi sidebar koyulaşır ama kimliğini korur */
+  --sy-sidebar-bg: #214b68;
+  --sy-navbar-bg: #15242f;
+  --sy-brand-bg: #0c1620;
+}
+
+html[data-theme='dark'] .sy-sidebar .sidebar-menu-item.active > .sidebar-menu-button .sidebar-menu-icon--left {
+  background: #fff;
+  color: #214b68;
+}
+
+html[data-theme='dark'] body {
+  background: var(--sy-body-bg);
+  color: var(--sy-text);
+}
+
+html[data-theme='dark'] .card,
+html[data-theme='dark'] .dropdown-menu,
+html[data-theme='dark'] .modal-content,
+html[data-theme='dark'] .list-group-item {
+  background-color: var(--sy-surface);
+  border-color: var(--sy-border);
+  color: var(--sy-text);
+}
+
+html[data-theme='dark'] .card-header,
+html[data-theme='dark'] .card-footer {
+  background-color: var(--sy-surface-2);
+  border-color: var(--sy-border);
+}
+
+html[data-theme='dark'] .bg-white {
+  background-color: var(--sy-surface) !important;
+}
+
+html[data-theme='dark'] .table,
+html[data-theme='dark'] .table td,
+html[data-theme='dark'] .table th {
+  color: var(--sy-text);
+  border-color: var(--sy-border);
+}
+
+html[data-theme='dark'] .table thead th {
+  background-color: var(--sy-surface-2);
+  border-color: var(--sy-border);
+}
+
+html[data-theme='dark'] .table-hover tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+  color: var(--sy-text);
+}
+
+html[data-theme='dark'] .form-control,
+html[data-theme='dark'] .custom-select {
+  background-color: var(--sy-surface-2);
+  border-color: var(--sy-border);
+  color: var(--sy-text);
+}
+
+html[data-theme='dark'] .form-control::placeholder {
+  color: rgba(227, 236, 242, 0.38);
+}
+
+html[data-theme='dark'] .form-control:focus,
+html[data-theme='dark'] .custom-select:focus {
+  background-color: var(--sy-surface-2);
+  color: var(--sy-text);
+  border-color: var(--sy-primary);
+}
+
+html[data-theme='dark'] .text-muted {
+  color: var(--sy-text-muted) !important;
+}
+
+html[data-theme='dark'] .btn-white,
+html[data-theme='dark'] .btn-outline-secondary {
+  background-color: var(--sy-surface-2);
+  border-color: var(--sy-border);
+  color: var(--sy-text);
+}
+
+html[data-theme='dark'] .border,
+html[data-theme='dark'] .border-top,
+html[data-theme='dark'] .border-bottom,
+html[data-theme='dark'] .border-left,
+html[data-theme='dark'] .border-right {
+  border-color: var(--sy-border) !important;
+}
+
+html[data-theme='dark'] .page-separator__text,
+html[data-theme='dark'] .page-separator::before {
+  background-color: var(--sy-body-bg);
+}
+
+html[data-theme='dark'] a {
+  color: #7cb8e4;
+}
+
+html[data-theme='dark'] .sy-letters button:hover {
+  background: var(--sy-surface-2);
+}
+
+/* Grafik eksen/ızgara renkleri JS'ten okunur */
+html[data-theme='dark'] .recharts-cartesian-grid line {
+  stroke: var(--sy-border);
+}

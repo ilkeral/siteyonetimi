@@ -12,7 +12,10 @@ export default function HomePage() {
   }, [router]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">
+    <div
+      className="d-flex align-items-center justify-content-center text-muted"
+      style={{ minHeight: '100vh' }}
+    >
       Yönlendiriliyor...
     </div>
   );

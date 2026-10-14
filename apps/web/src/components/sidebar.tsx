@@ -2,75 +2,155 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import clsx from 'clsx';
 
 /**
  * Ana menü — Apsiyon'daki 13 modülün karşılığı.
- * `ready: false` olanlar sonraki fazlarda açılacak; menüde görünür ama pasiftir,
- * böylece ürünün bütünü baştan görünür olur.
+ * `ready: false` olanlar sonraki fazlarda açılacak; menüde görünür ama
+ * tıklanamaz, böylece ürünün bütünü baştan görünür olur.
+ *
+ * İkonlar Material Design Icons (tema ile birlikte geliyor).
  */
-export const MENU = [
-  { href: '/ozet', label: 'Özet', icon: '▦', ready: true },
-  { href: '/site', label: 'Site', icon: '🏢', ready: true },
-  { href: '/finans', label: 'Finans', icon: '₺', ready: true },
-  { href: '/sayac', label: 'Sayaç İşlemleri', icon: '⏱', ready: false },
-  { href: '/raporlar', label: 'Raporlar', icon: '📊', ready: false },
-  { href: '/guvenlik', label: 'Güvenlik', icon: '🛡', ready: false },
-  { href: '/teknik', label: 'Teknik', icon: '🔧', ready: false },
-  { href: '/tanimlar', label: 'Tanımlar', icon: '⚙', ready: false },
-  { href: '/iletisim', label: 'İletişim', icon: '✉', ready: false },
-  { href: '/ada', label: 'ADA', icon: '🗺', ready: false },
-  { href: '/web-sitesi', label: 'Web Sitesi', icon: '🌐', ready: false },
-  { href: '/sigorta', label: 'Sigorta', icon: '📄', ready: false },
-] as const;
+interface MenuItem {
+  href: string;
+  label: string;
+  icon: string;
+  ready: boolean;
+  children?: { href: string; label: string }[];
+}
 
-export function Sidebar() {
+export const MENU: MenuItem[] = [
+  { href: '/ozet', label: 'Özet', icon: 'dashboard', ready: true },
+  {
+    href: '/site',
+    label: 'Site',
+    icon: 'apartment',
+    ready: true,
+    children: [
+      { href: '/site', label: 'Kişiler' },
+      { href: '/site/daireler', label: 'Daireler' },
+    ],
+  },
+  {
+    href: '/finans',
+    label: 'Finans',
+    icon: 'account_balance_wallet',
+    ready: true,
+    children: [
+      { href: '/finans', label: 'Cari Hesaplar' },
+      { href: '/finans/aidat', label: 'Aidat Tahakkuku' },
+      { href: '/finans/tahsilat', label: 'Tahsilat' },
+      { href: '/finans/gider', label: 'Gider Faturası' },
+      { href: '/finans/banka', label: 'Banka Hareketleri' },
+    ],
+  },
+  { href: '/sayac', label: 'Sayaç İşlemleri', icon: 'speed', ready: false },
+  { href: '/raporlar', label: 'Raporlar', icon: 'assessment', ready: false },
+  { href: '/guvenlik', label: 'Güvenlik', icon: 'security', ready: false },
+  { href: '/teknik', label: 'Teknik', icon: 'build', ready: false },
+  { href: '/tanimlar', label: 'Tanımlar', icon: 'settings', ready: false },
+  { href: '/iletisim', label: 'İletişim', icon: 'mail_outline', ready: false },
+  { href: '/ada', label: 'ADA', icon: 'map', ready: false },
+  { href: '/web-sitesi', label: 'Web Sitesi', icon: 'public', ready: false },
+  { href: '/sigorta', label: 'Sigorta', icon: 'verified_user', ready: false },
+];
+
+export function Sidebar({ mini }: { mini: boolean }) {
   const pathname = usePathname();
 
+  function isActive(item: MenuItem): boolean {
+    if (item.href === '/site') {
+      return pathname === '/site' || pathname.startsWith('/site/');
+    }
+    return pathname === item.href || pathname.startsWith(`${item.href}/`);
+  }
+
   return (
-    <aside className="fixed inset-y-0 left-0 z-20 flex w-[var(--sidebar-width)] flex-col border-r border-slate-200 bg-white">
-      <div className="flex h-14 items-center gap-2 border-b border-slate-100 px-4">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
-          SY
-        </span>
-        <span className="text-sm font-semibold text-slate-800">Site Yönetim</span>
-      </div>
+    <div className="sidebar sidebar-primary sidebar-left sy-sidebar">
+      <Link href="/ozet" className="sidebar-brand sidebar-brand-bg sy-brandblock">
+        <span className="sy-brand__mark">SY</span>
+        {!mini && <span>Site Yönetim</span>}
+      </Link>
 
-      <nav className="flex-1 overflow-y-auto py-3">
-        <ul className="space-y-0.5 px-2">
-          {MENU.map((item) => {
-            const active = pathname.startsWith(item.href);
-            const className = clsx(
-              'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
-              active
-                ? 'bg-brand-50 font-medium text-brand-700'
-                : item.ready
-                  ? 'text-slate-600 hover:bg-slate-50'
-                  : 'cursor-not-allowed text-slate-300',
-            );
+      {!mini && <div className="sidebar-heading">Ana Menü</div>}
+      <MenuList items={MENU.filter((item) => item.ready)} mini={mini} pathname={pathname} />
 
-            return (
-              <li key={item.href}>
-                {item.ready ? (
-                  <Link href={item.href} className={className}>
-                    <span className="w-4 text-center">{item.icon}</span>
-                    {item.label}
-                  </Link>
-                ) : (
-                  <span className={className} title="Sonraki fazda">
-                    <span className="w-4 text-center">{item.icon}</span>
-                    {item.label}
-                  </span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+      {!mini && <div className="sidebar-heading">Diğer Modüller</div>}
+      <MenuList items={MENU.filter((item) => !item.ready)} mini={mini} pathname={pathname} />
 
-      <div className="border-t border-slate-100 px-4 py-3 text-[11px] text-slate-400">
-        Sürüm 0.1.0 — Faz 0
-      </div>
-    </aside>
+      <div className="sy-sidebar-footer">Sürüm 0.1.0 — Faz 1</div>
+    </div>
+  );
+}
+
+function MenuList({
+  items,
+  mini,
+  pathname,
+}: {
+  items: MenuItem[];
+  mini: boolean;
+  pathname: string;
+}) {
+  function isActive(item: MenuItem): boolean {
+    if (item.href === '/site') {
+      return pathname === '/site' || pathname.startsWith('/site/');
+    }
+    return pathname === item.href || pathname.startsWith(`${item.href}/`);
+  }
+
+  return (
+    <ul className="sidebar-menu">
+      {items.map((item) => {
+          const active = isActive(item);
+          const showChildren = active && !mini && item.children && item.ready;
+
+          return (
+            <li
+              key={item.href}
+              // `open`: temanın CSS'i alt menüyü yalnızca bu sınıfla gösteriyor
+              className={[
+                'sidebar-menu-item',
+                active ? 'active' : '',
+                showChildren ? 'open' : '',
+                item.ready ? '' : 'disabled',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              data-label={item.label}
+            >
+              {item.ready ? (
+                <Link href={item.href} className="sidebar-menu-button">
+                  <i className="sidebar-menu-icon sidebar-menu-icon--left material-icons">
+                    {item.icon}
+                  </i>
+                  <span className="sidebar-menu-text">{item.label}</span>
+                </Link>
+              ) : (
+                <span className="sidebar-menu-button" title="Sonraki fazda">
+                  <i className="sidebar-menu-icon sidebar-menu-icon--left material-icons">
+                    {item.icon}
+                  </i>
+                  <span className="sidebar-menu-text">{item.label}</span>
+                </span>
+              )}
+
+              {showChildren && (
+                <ul className="sidebar-submenu collapse show">
+                  {item.children!.map((child) => (
+                    <li
+                      key={child.href}
+                      className={`sidebar-menu-item${pathname === child.href ? ' active' : ''}`}
+                    >
+                      <Link href={child.href} className="sidebar-menu-button">
+                        <span className="sidebar-menu-text">{child.label}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          );
+      })}
+    </ul>
   );
 }

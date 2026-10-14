@@ -6,7 +6,6 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { balanceClass, money } from '@/lib/format';
 import {
-  Badge,
   Card,
   EmptyState,
   ErrorBox,
@@ -52,40 +51,53 @@ export default function PeoplePage() {
   });
 
   return (
-    <div>
+    <>
       <PageHeader
         title="Kişiler"
         subtitle="Kat malikleri, kiracılar ve bakiyeleri"
         actions={
-          <Link href="/site/yeni" className="btn-primary text-xs">
+          <button type="button" className="btn btn-primary">
+            <i className="material-icons mr-1" style={{ fontSize: 16 }}>
+              person_add
+            </i>
             Yeni Kişi
-          </Link>
+          </button>
         }
       />
 
       <Card>
-        <div className="flex flex-wrap items-center gap-3 px-5 py-3">
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            placeholder="Ad, soyad, TC, telefon veya e-posta ara"
-            className="field-input max-w-sm"
-          />
-          <label className="flex items-center gap-2 text-sm text-slate-600">
+        <div className="card-body py-3 d-flex flex-wrap align-items-center" style={{ gap: '1rem' }}>
+          <div className="search-form" style={{ maxWidth: 360, flex: 1 }}>
+            <input
+              type="search"
+              className="form-control"
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
+              placeholder="Ad, soyad, TC, telefon veya e-posta ara"
+            />
+            <button className="btn" type="button">
+              <i className="material-icons">search</i>
+            </button>
+          </div>
+
+          <div className="custom-control custom-checkbox">
             <input
               type="checkbox"
+              className="custom-control-input"
+              id="onlyDebtors"
               checked={onlyDebtors}
-              onChange={(e) => {
-                setOnlyDebtors(e.target.checked);
+              onChange={(event) => {
+                setOnlyDebtors(event.target.checked);
                 setPage(1);
               }}
             />
-            Sadece borçlular
-          </label>
+            <label className="custom-control-label" htmlFor="onlyDebtors">
+              Sadece borçlular
+            </label>
+          </div>
         </div>
 
         <LetterFilter
@@ -97,56 +109,60 @@ export default function PeoplePage() {
         />
 
         {isLoading ? (
-          <Loading />
+          <div className="card-body">
+            <Loading />
+          </div>
         ) : error ? (
-          <div className="p-4">
+          <div className="card-body">
             <ErrorBox error={error} />
           </div>
         ) : !data || data.items.length === 0 ? (
-          <EmptyState message="Kayıt bulunamadı." />
+          <EmptyState message="Kayıt bulunamadı." icon="person_search" />
         ) : (
           <>
             <Table
               head={
                 <tr>
-                  <th className="px-5 py-2">Adı Soyadı</th>
-                  <th className="px-3 py-2">TC Kimlik</th>
-                  <th className="px-3 py-2">Telefon</th>
-                  <th className="px-3 py-2">E-Posta</th>
-                  <th className="px-3 py-2">Daireler</th>
-                  <th className="px-5 py-2 text-right">Bakiye</th>
+                  <th>Adı Soyadı</th>
+                  <th>TC Kimlik</th>
+                  <th>Telefon</th>
+                  <th>E-Posta</th>
+                  <th>Daireler</th>
+                  <th className="text-right">Bakiye</th>
                 </tr>
               }
             >
               {data.items.map((person) => (
-                <tr key={person.id} className="hover:bg-slate-50/60">
-                  <td className="px-5 py-2.5">
-                    <Link
-                      href={`/site/${person.id}`}
-                      className="font-medium text-slate-800 hover:text-brand-700"
-                    >
+                <tr key={person.id}>
+                  <td>
+                    <Link href={`/site/${person.id}`} className="font-weight-bold">
                       {person.fullName}
                     </Link>
                     {person.inLegalAction && (
-                      <span className="ml-2">
-                        <Badge tone="red">İcra takibinde</Badge>
-                      </span>
+                      <span className="badge badge-danger ml-2">İcra takibinde</span>
                     )}
                   </td>
-                  <td className="px-3 py-2.5 text-slate-500">{person.nationalId ?? '—'}</td>
-                  <td className="px-3 py-2.5 text-slate-500">{person.phone ?? '—'}</td>
-                  <td className="px-3 py-2.5 text-slate-500">{person.email ?? '—'}</td>
-                  <td className="px-3 py-2.5">
-                    <div className="flex flex-wrap gap-1">
-                      {person.units.map((unit, i) => (
-                        <Badge key={i} tone={unit.role === 'OWNER' ? 'blue' : 'purple'}>
+                  <td className="text-muted">{person.nationalId ?? '—'}</td>
+                  <td className="text-muted">{person.phone ?? '—'}</td>
+                  <td className="text-muted">{person.email ?? '—'}</td>
+                  <td>
+                    {person.units.length === 0 ? (
+                      <span className="text-muted">—</span>
+                    ) : (
+                      person.units.map((unit, index) => (
+                        <span
+                          key={index}
+                          className={`badge mr-1 ${
+                            unit.role === 'OWNER' ? 'badge-primary' : 'badge-purple'
+                          }`}
+                          title={unit.blockName ?? undefined}
+                        >
                           {unit.doorNumber}({unit.role === 'OWNER' ? 'M' : 'K'})
-                        </Badge>
-                      ))}
-                      {person.units.length === 0 && <span className="text-slate-400">—</span>}
-                    </div>
+                        </span>
+                      ))
+                    )}
                   </td>
-                  <td className={`px-5 py-2.5 text-right font-medium ${balanceClass(person.balanceMinor)}`}>
+                  <td className={`text-right sy-num font-weight-bold ${balanceClass(person.balanceMinor)}`}>
                     {money(person.balanceMinor)}
                   </td>
                 </tr>
@@ -161,6 +177,6 @@ export default function PeoplePage() {
           </>
         )}
       </Card>
-    </div>
+    </>
   );
 }

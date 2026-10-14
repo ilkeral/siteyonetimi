@@ -40,13 +40,25 @@ export function todayInput(): string {
 
 /** Bakiye rengini belirler: borçlu kırmızı, alacaklı (avans) yeşil */
 export function balanceClass(minor: number): string {
-  if (minor > 0) return 'text-red-600';
-  if (minor < 0) return 'text-emerald-600';
-  return 'text-slate-500';
+  if (minor > 0) return 'text-danger';
+  if (minor < 0) return 'text-success';
+  return 'text-muted';
 }
 
+/** Grafik paleti — tema değişkenlerinden (_variables.scss) türetildi */
 export const CHART_COLORS = [
-  '#257deb', '#16a34a', '#ea580c', '#7c3aed', '#0891b2',
-  '#dc2626', '#ca8a04', '#db2777', '#059669', '#4f46e5',
-  '#64748b', '#9333ea',
+  '#4B98CF', '#4EB4A5', '#E3AA75', '#5163C5', '#16BA71',
+  '#346384', '#939FAD', '#EA4C89', '#42b883', '#D32F2F',
+  '#00aced', '#3b5998',
 ];
+
+export const CHART_SUCCESS = '#4EB4A5';
+export const CHART_DANGER = '#dc3545';
+
+/** Koyu modda grafik ekseni/metni okunur kalsın diye */
+export function chartTextColor(): string {
+  if (typeof document === 'undefined') return '#374D67';
+  return document.documentElement.getAttribute('data-theme') === 'dark'
+    ? 'rgba(227, 236, 242, 0.7)'
+    : 'rgba(55, 77, 103, 0.7)';
+}

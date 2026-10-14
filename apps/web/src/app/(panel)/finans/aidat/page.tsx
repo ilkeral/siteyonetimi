@@ -2,9 +2,17 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, ApiError } from '@/lib/api';
+import { api } from '@/lib/api';
 import { date, money } from '@/lib/format';
-import { Badge, Card, EmptyState, ErrorBox, Loading, PageHeader, Table } from '@/components/ui';
+import {
+  Card,
+  EmptyState,
+  ErrorBox,
+  Loading,
+  PageHeader,
+  SuccessBox,
+  Table,
+} from '@/components/ui';
 
 interface DuesItem {
   id: string;
@@ -84,10 +92,8 @@ export default function DuesPage() {
   });
 
   const generateMutation = useMutation({
-    mutationFn: () => api.post<{ documentCount: number; totalMinor: number }>(
-      '/finance/dues/generate',
-      payload,
-    ),
+    mutationFn: () =>
+      api.post<{ documentCount: number; totalMinor: number }>('/finance/dues/generate', payload),
     onSuccess: () => {
       setPreview(null);
       setLines([]);
@@ -122,152 +128,172 @@ export default function DuesPage() {
   const error = previewMutation.error ?? generateMutation.error ?? cancelMutation.error;
 
   return (
-    <div className="space-y-5">
+    <>
       <PageHeader title="Aidat Tahakkuku" subtitle="Dönemsel aidatı hesapla ve carilere işle" />
 
-      <Card title="Dönem Bilgileri">
-        <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-4">
-          <div>
-            <label className="field-label">Dönem</label>
-            <input
-              type="month"
-              value={period}
-              onChange={(e) => {
-                setPeriod(e.target.value);
-                setIssueDate(`${e.target.value}-01`);
-                setDueDate(`${e.target.value}-15`);
-                setPreview(null);
-              }}
-              className="field-input"
-            />
-          </div>
-          <div>
-            <label className="field-label">Evrak Tarihi</label>
-            <input
-              type="date"
-              value={issueDate}
-              onChange={(e) => setIssueDate(e.target.value)}
-              className="field-input"
-            />
-          </div>
-          <div>
-            <label className="field-label">Son Ödeme Tarihi</label>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="field-input"
-            />
-          </div>
-          <div>
-            <label className="field-label">Açıklama</label>
-            <input
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Opsiyonel"
-              className="field-input"
-            />
+      <Card title="Dönem Bilgileri" className="mb-4">
+        <div className="card-body">
+          <div className="row">
+            <div className="col-md-3 form-group">
+              <label className="form-label">Dönem</label>
+              <input
+                type="month"
+                className="form-control"
+                value={period}
+                onChange={(event) => {
+                  setPeriod(event.target.value);
+                  setIssueDate(`${event.target.value}-01`);
+                  setDueDate(`${event.target.value}-15`);
+                  setPreview(null);
+                }}
+              />
+            </div>
+            <div className="col-md-3 form-group">
+              <label className="form-label">Evrak Tarihi</label>
+              <input
+                type="date"
+                className="form-control"
+                value={issueDate}
+                onChange={(event) => setIssueDate(event.target.value)}
+              />
+            </div>
+            <div className="col-md-3 form-group">
+              <label className="form-label">Son Ödeme Tarihi</label>
+              <input
+                type="date"
+                className="form-control"
+                value={dueDate}
+                onChange={(event) => setDueDate(event.target.value)}
+              />
+            </div>
+            <div className="col-md-3 form-group">
+              <label className="form-label">Açıklama</label>
+              <input
+                type="text"
+                className="form-control"
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                placeholder="Opsiyonel"
+              />
+            </div>
           </div>
         </div>
       </Card>
 
       <Card
         title="Aidat Kalemleri"
+        className="mb-4"
         actions={
-          <button type="button" onClick={addLine} className="btn-ghost px-3 py-1 text-xs">
-            + Kalem Ekle
+          <button type="button" onClick={addLine} className="btn btn-outline-primary btn-sm">
+            <i className="material-icons mr-1" style={{ fontSize: 15 }}>
+              add
+            </i>
+            Kalem Ekle
           </button>
         }
       >
         {lines.length === 0 ? (
-          <EmptyState message="Tahakkuka en az bir kalem ekleyin." />
+          <EmptyState message="Tahakkuka en az bir kalem ekleyin." icon="playlist_add" />
         ) : (
-          <div className="space-y-3 p-5">
+          <div className="card-body">
             {lines.map((line, index) => (
-              <div key={index} className="grid grid-cols-1 gap-3 sm:grid-cols-5">
-                <select
-                  value={line.duesItemId}
-                  onChange={(e) => {
-                    const next = [...lines];
-                    next[index] = { ...line, duesItemId: e.target.value };
-                    setLines(next);
-                    setPreview(null);
-                  }}
-                  className="field-input"
-                >
-                  {items?.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="row align-items-end mb-2" key={index}>
+                <div className="col-md-3 form-group mb-0">
+                  <select
+                    className="custom-select"
+                    value={line.duesItemId}
+                    onChange={(event) => {
+                      const next = [...lines];
+                      next[index] = { ...line, duesItemId: event.target.value };
+                      setLines(next);
+                      setPreview(null);
+                    }}
+                  >
+                    {items?.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                <select
-                  value={line.mode}
-                  onChange={(e) => {
-                    const next = [...lines];
-                    next[index] = { ...line, mode: e.target.value as 'PER_UNIT' | 'TOTAL' };
-                    setLines(next);
-                    setPreview(null);
-                  }}
-                  className="field-input"
-                >
-                  <option value="PER_UNIT">Daire başına</option>
-                  <option value="TOTAL">Toplam tutarı dağıt</option>
-                </select>
+                <div className="col-md-3 form-group mb-0">
+                  <select
+                    className="custom-select"
+                    value={line.mode}
+                    onChange={(event) => {
+                      const next = [...lines];
+                      next[index] = {
+                        ...line,
+                        mode: event.target.value as 'PER_UNIT' | 'TOTAL',
+                      };
+                      setLines(next);
+                      setPreview(null);
+                    }}
+                  >
+                    <option value="PER_UNIT">Daire başına</option>
+                    <option value="TOTAL">Toplam tutarı dağıt</option>
+                  </select>
+                </div>
 
-                <select
-                  value={line.method ?? 'EQUAL'}
-                  disabled={line.mode === 'PER_UNIT'}
-                  onChange={(e) => {
-                    const next = [...lines];
-                    next[index] = { ...line, method: e.target.value };
-                    setLines(next);
-                    setPreview(null);
-                  }}
-                  className="field-input disabled:bg-slate-50 disabled:text-slate-400"
-                >
-                  {METHODS.map((method) => (
-                    <option key={method.value} value={method.value}>
-                      {method.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="col-md-3 form-group mb-0">
+                  <select
+                    className="custom-select"
+                    disabled={line.mode === 'PER_UNIT'}
+                    value={line.method ?? 'EQUAL'}
+                    onChange={(event) => {
+                      const next = [...lines];
+                      next[index] = { ...line, method: event.target.value };
+                      setLines(next);
+                      setPreview(null);
+                    }}
+                  >
+                    {METHODS.map((method) => (
+                      <option key={method.value} value={method.value}>
+                        {method.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={line.amount}
-                  onChange={(e) => {
-                    const next = [...lines];
-                    next[index] = { ...line, amount: e.target.value };
-                    setLines(next);
-                    setPreview(null);
-                  }}
-                  placeholder="Tutar"
-                  className="field-input"
-                />
+                <div className="col-md-2 form-group mb-0">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    className="form-control text-right"
+                    value={line.amount}
+                    onChange={(event) => {
+                      const next = [...lines];
+                      next[index] = { ...line, amount: event.target.value };
+                      setLines(next);
+                      setPreview(null);
+                    }}
+                    placeholder="Tutar"
+                  />
+                </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLines(lines.filter((_, i) => i !== index));
-                    setPreview(null);
-                  }}
-                  className="btn-ghost text-xs text-red-600"
-                >
-                  Kaldır
-                </button>
+                <div className="col-md-1 form-group mb-0">
+                  <button
+                    type="button"
+                    className="btn btn-link text-danger p-0"
+                    onClick={() => {
+                      setLines(lines.filter((_, i) => i !== index));
+                      setPreview(null);
+                    }}
+                    title="Kaldır"
+                  >
+                    <i className="material-icons">delete_outline</i>
+                  </button>
+                </div>
               </div>
             ))}
 
-            <div className="flex gap-2 pt-2">
+            <div className="mt-3">
               <button
                 type="button"
                 onClick={() => previewMutation.mutate()}
                 disabled={previewMutation.isPending}
-                className="btn-ghost text-sm"
+                className="btn btn-outline-secondary mr-2"
               >
                 {previewMutation.isPending ? 'Hesaplanıyor...' : 'Önizle'}
               </button>
@@ -275,7 +301,7 @@ export default function DuesPage() {
                 type="button"
                 onClick={() => generateMutation.mutate()}
                 disabled={!preview || generateMutation.isPending}
-                className="btn-primary text-sm"
+                className="btn btn-primary"
               >
                 {generateMutation.isPending ? 'Oluşturuluyor...' : 'Tahakkuku Oluştur'}
               </button>
@@ -284,61 +310,68 @@ export default function DuesPage() {
         )}
       </Card>
 
-      {error && <ErrorBox error={error instanceof ApiError ? error : error} />}
+      {error && <ErrorBox error={error} />}
 
       {generateMutation.isSuccess && (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <SuccessBox>
           {generateMutation.data.documentCount} daireye toplam{' '}
           {money(generateMutation.data.totalMinor)} tahakkuk işlendi.
-        </div>
+        </SuccessBox>
       )}
 
       {preview && (
         <Card
           title={`Önizleme — ${preview.periodLabel}`}
+          className="mb-4"
           actions={
-            <span className="text-xs font-medium text-slate-600">
-              {preview.unitCount} daire · {money(preview.totalMinor)}
+            <span className="text-muted small">
+              {preview.unitCount} daire · <strong>{money(preview.totalMinor)}</strong>
             </span>
           }
         >
           {preview.warnings.length > 0 && (
-            <div className="border-b border-amber-100 bg-amber-50 px-5 py-3 text-xs text-amber-800">
-              {preview.warnings.map((warning, i) => (
-                <div key={i}>⚠ {warning}</div>
+            <div className="alert alert-warning m-3 py-2">
+              {preview.warnings.map((warning, index) => (
+                <div key={index} className="small">
+                  {warning}
+                </div>
               ))}
             </div>
           )}
           <Table
             head={
               <tr>
-                <th className="px-5 py-2">Daire</th>
-                <th className="px-3 py-2">Blok</th>
-                <th className="px-3 py-2">Sorumlu</th>
-                <th className="px-3 py-2">Sıfat</th>
-                <th className="px-3 py-2">Kırılım</th>
-                <th className="px-5 py-2 text-right">Tutar</th>
+                <th>Daire</th>
+                <th>Blok</th>
+                <th>Sorumlu</th>
+                <th>Sıfat</th>
+                <th>Kırılım</th>
+                <th className="text-right">Tutar</th>
               </tr>
             }
           >
             {preview.rows.map((row) => (
-              <tr key={row.unitId} className={row.personId ? '' : 'bg-amber-50/50'}>
-                <td className="px-5 py-2.5 font-medium">{row.doorNumber}</td>
-                <td className="px-3 py-2.5 text-slate-500">{row.blockName ?? '—'}</td>
-                <td className="px-3 py-2.5">{row.personName}</td>
-                <td className="px-3 py-2.5">
+              <tr key={row.unitId} className={row.personId ? '' : 'table-warning'}>
+                <td className="font-weight-bold">{row.doorNumber}</td>
+                <td className="text-muted">{row.blockName ?? '—'}</td>
+                <td>{row.personName}</td>
+                <td>
                   {row.liability === 'NONE' ? (
-                    <Badge tone="amber">Sorumlu yok</Badge>
+                    <span className="badge badge-warning">Sorumlu yok</span>
                   ) : (
-                    <Badge tone={row.liability === 'OWNER' ? 'blue' : 'purple'}>
+                    <span
+                      className={`badge ${
+                        row.liability === 'OWNER' ? 'badge-primary' : 'badge-purple'
+                      }`}
+                    >
                       {row.liability === 'OWNER' ? 'Malik' : 'Kiracı'}
-                    </Badge>
+                    </span>
                   )}
                 </td>
-                <td className="px-3 py-2.5 text-xs text-slate-500">
+                <td className="text-muted small">
                   {row.breakdown.map((b) => `${b.name}: ${money(b.amountMinor)}`).join(' · ')}
                 </td>
-                <td className="px-5 py-2.5 text-right font-medium">{money(row.amountMinor)}</td>
+                <td className="text-right sy-num font-weight-bold">{money(row.amountMinor)}</td>
               </tr>
             ))}
           </Table>
@@ -347,47 +380,51 @@ export default function DuesPage() {
 
       <Card title="Geçmiş Tahakkuklar">
         {!runs ? (
-          <Loading />
+          <div className="card-body">
+            <Loading />
+          </div>
         ) : runs.length === 0 ? (
-          <EmptyState message="Henüz tahakkuk oluşturulmadı." />
+          <EmptyState message="Henüz tahakkuk oluşturulmadı." icon="history" />
         ) : (
           <Table
             head={
               <tr>
-                <th className="px-5 py-2">Dönem</th>
-                <th className="px-3 py-2">Evrak Tarihi</th>
-                <th className="px-3 py-2">Son Ödeme</th>
-                <th className="px-3 py-2">Daire</th>
-                <th className="px-3 py-2">Durum</th>
-                <th className="px-5 py-2 text-right">Tutar</th>
-                <th className="px-5 py-2"></th>
+                <th>Dönem</th>
+                <th>Evrak Tarihi</th>
+                <th>Son Ödeme</th>
+                <th>Daire</th>
+                <th>Durum</th>
+                <th className="text-right">Tutar</th>
+                <th />
               </tr>
             }
           >
             {runs.map((run) => (
               <tr key={run.id}>
-                <td className="px-5 py-2.5 font-medium">{run.period}</td>
-                <td className="px-3 py-2.5">{date(run.issueDate)}</td>
-                <td className="px-3 py-2.5">{date(run.dueDate)}</td>
-                <td className="px-3 py-2.5">{run.unitCount}</td>
-                <td className="px-3 py-2.5">
-                  <Badge tone={run.status === 'POSTED' ? 'green' : 'slate'}>
+                <td className="font-weight-bold">{run.period}</td>
+                <td>{date(run.issueDate)}</td>
+                <td>{date(run.dueDate)}</td>
+                <td>{run.unitCount}</td>
+                <td>
+                  <span
+                    className={`badge ${run.status === 'POSTED' ? 'badge-success' : 'badge-secondary'}`}
+                  >
                     {run.status === 'POSTED' ? 'İşlendi' : 'İptal'}
-                  </Badge>
+                  </span>
                 </td>
-                <td className="px-5 py-2.5 text-right font-medium">
+                <td className="text-right sy-num font-weight-bold">
                   {money(Math.round(Number(run.totalAmount) * 100))}
                 </td>
-                <td className="px-5 py-2.5 text-right">
+                <td className="text-right">
                   {run.status === 'POSTED' && (
                     <button
                       type="button"
+                      className="btn btn-link btn-sm text-danger p-0"
                       onClick={() => {
                         if (confirm(`${run.period} dönemi tahakkuku iptal edilsin mi?`)) {
                           cancelMutation.mutate(run.id);
                         }
                       }}
-                      className="text-xs text-red-600 hover:underline"
                     >
                       İptal et
                     </button>
@@ -398,6 +435,6 @@ export default function DuesPage() {
           </Table>
         )}
       </Card>
-    </div>
+    </>
   );
 }

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { date, money, todayInput } from '@/lib/format';
-import { Card, EmptyState, ErrorBox, PageHeader, Table } from '@/components/ui';
+import { Card, EmptyState, ErrorBox, PageHeader, SuccessBox, Table } from '@/components/ui';
 
 interface AccountOption {
   id: string;
@@ -40,7 +40,13 @@ export default function CollectionPage() {
     queryKey: ['open-items', accountId],
     queryFn: () =>
       api.get<{
-        items: { documentId: string; number: string; period: string | null; dueDate: string | null; remainingMinor: number }[];
+        items: {
+          documentId: string;
+          number: string;
+          period: string | null;
+          dueDate: string | null;
+          remainingMinor: number;
+        }[];
         totalMinor: number;
         advanceMinor: number;
       }>(`/finance/accounts/${accountId}/open-items`),
@@ -66,153 +72,149 @@ export default function CollectionPage() {
   });
 
   return (
-    <div className="space-y-5">
+    <>
       <PageHeader title="Tahsilat" subtitle="Kişiden tahsil edilen tutarı kasaya/bankaya işle" />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <Card title="Tahsilat Makbuzu">
-          <div className="space-y-4 p-5">
-            <div>
-              <label className="field-label">Cari (kişi)</label>
-              <select
-                value={accountId}
-                onChange={(e) => setAccountId(e.target.value)}
-                className="field-input"
-              >
-                <option value="">Seçiniz</option>
-                {people?.items.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.name}
-                    {account.balanceMinor > 0 ? ` — borç ${money(account.balanceMinor)}` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="field-label">Kasa / Banka</label>
+      <div className="row">
+        <div className="col-lg-6 mb-4 mb-lg-0">
+          <Card title="Tahsilat Makbuzu">
+            <div className="card-body">
+              <div className="form-group">
+                <label className="form-label">Cari (kişi)</label>
                 <select
-                  value={cashAccountId}
-                  onChange={(e) => setCashAccountId(e.target.value)}
-                  className="field-input"
+                  className="custom-select"
+                  value={accountId}
+                  onChange={(event) => setAccountId(event.target.value)}
                 >
                   <option value="">Seçiniz</option>
-                  {cash?.map((account) => (
+                  {people?.items.map((account) => (
                     <option key={account.id} value={account.id}>
                       {account.name}
+                      {account.balanceMinor > 0 ? ` — borç ${money(account.balanceMinor)}` : ''}
                     </option>
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="field-label">Tarih</label>
-                <input
-                  type="date"
-                  value={when}
-                  onChange={(e) => setWhen(e.target.value)}
-                  className="field-input"
-                />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="field-label">Tutar</label>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="1.500,00"
-                  className="field-input"
-                />
+              <div className="row">
+                <div className="col-6 form-group">
+                  <label className="form-label">Kasa / Banka</label>
+                  <select
+                    className="custom-select"
+                    value={cashAccountId}
+                    onChange={(event) => setCashAccountId(event.target.value)}
+                  >
+                    <option value="">Seçiniz</option>
+                    {cash?.map((account) => (
+                      <option key={account.id} value={account.id}>
+                        {account.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-6 form-group">
+                  <label className="form-label">Tarih</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={when}
+                    onChange={(event) => setWhen(event.target.value)}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="field-label">Açıklama</label>
-                <input
-                  type="text"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Opsiyonel"
-                  className="field-input"
-                />
-              </div>
-            </div>
 
-            {openItems && accountId && (
+              <div className="row">
+                <div className="col-6 form-group">
+                  <label className="form-label">Tutar</label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    className="form-control text-right"
+                    value={amount}
+                    onChange={(event) => setAmount(event.target.value)}
+                    placeholder="1.500,00"
+                  />
+                </div>
+                <div className="col-6 form-group">
+                  <label className="form-label">Açıklama</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    placeholder="Opsiyonel"
+                  />
+                </div>
+              </div>
+
+              {openItems && accountId && openItems.totalMinor > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-link p-0 mb-3"
+                  onClick={() => setAmount(String(openItems.totalMinor / 100))}
+                >
+                  Tüm borcu doldur ({money(openItems.totalMinor)})
+                </button>
+              )}
+
+              {collect.error && <ErrorBox error={collect.error} />}
+              {collect.isSuccess && <SuccessBox>Tahsilat kaydedildi.</SuccessBox>}
+
               <button
                 type="button"
-                onClick={() => setAmount(String(openItems.totalMinor / 100))}
-                className="text-xs text-brand-700 hover:underline"
+                className="btn btn-primary btn-block"
+                disabled={!accountId || !cashAccountId || !amount || collect.isPending}
+                onClick={() => collect.mutate()}
               >
-                Tüm borcu doldur ({money(openItems.totalMinor)})
+                {collect.isPending ? 'Kaydediliyor...' : 'Tahsilatı Kaydet'}
               </button>
-            )}
-
-            {collect.error && <ErrorBox error={collect.error} />}
-            {collect.isSuccess && (
-              <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
-                Tahsilat kaydedildi.
-              </div>
-            )}
-
-            <button
-              type="button"
-              disabled={!accountId || !cashAccountId || !amount || collect.isPending}
-              onClick={() => collect.mutate()}
-              className="btn-primary w-full"
-            >
-              {collect.isPending ? 'Kaydediliyor...' : 'Tahsilatı Kaydet'}
-            </button>
-          </div>
-        </Card>
-
-        <Card title="Carinin Açık Borçları">
-          {!accountId ? (
-            <EmptyState message="Önce bir cari seçin." />
-          ) : !openItems || openItems.items.length === 0 ? (
-            <div>
-              <EmptyState message="Kapanmamış borç yok." />
-              {openItems && openItems.advanceMinor > 0 && (
-                <p className="pb-5 text-center text-sm text-emerald-700">
-                  Avans bakiyesi: {money(openItems.advanceMinor)}
-                </p>
-              )}
             </div>
-          ) : (
-            <Table
-              head={
-                <tr>
-                  <th className="px-5 py-2">Evrak</th>
-                  <th className="px-3 py-2">Dönem</th>
-                  <th className="px-3 py-2">Son Ödeme</th>
-                  <th className="px-5 py-2 text-right">Kalan</th>
+          </Card>
+        </div>
+
+        <div className="col-lg-6">
+          <Card title="Carinin Açık Borçları">
+            {!accountId ? (
+              <EmptyState message="Önce bir cari seçin." icon="person_search" />
+            ) : !openItems || openItems.items.length === 0 ? (
+              <>
+                <EmptyState message="Kapanmamış borç yok." icon="done_all" />
+                {openItems && openItems.advanceMinor > 0 && (
+                  <p className="text-center text-success pb-4 m-0">
+                    Avans bakiyesi: <strong>{money(openItems.advanceMinor)}</strong>
+                  </p>
+                )}
+              </>
+            ) : (
+              <Table
+                head={
+                  <tr>
+                    <th>Evrak</th>
+                    <th>Dönem</th>
+                    <th>Son Ödeme</th>
+                    <th className="text-right">Kalan</th>
+                  </tr>
+                }
+              >
+                {openItems.items.map((item) => (
+                  <tr key={item.documentId}>
+                    <td>
+                      <code>{item.number}</code>
+                    </td>
+                    <td>{item.period ?? '—'}</td>
+                    <td>{date(item.dueDate)}</td>
+                    <td className="text-right sy-num text-danger">{money(item.remainingMinor)}</td>
+                  </tr>
+                ))}
+                <tr className="font-weight-bold">
+                  <td colSpan={3}>Toplam</td>
+                  <td className="text-right sy-num text-danger">{money(openItems.totalMinor)}</td>
                 </tr>
-              }
-            >
-              {openItems.items.map((item) => (
-                <tr key={item.documentId}>
-                  <td className="px-5 py-2.5 font-mono text-xs">{item.number}</td>
-                  <td className="px-3 py-2.5">{item.period ?? '—'}</td>
-                  <td className="px-3 py-2.5">{date(item.dueDate)}</td>
-                  <td className="px-5 py-2.5 text-right font-medium text-red-600">
-                    {money(item.remainingMinor)}
-                  </td>
-                </tr>
-              ))}
-              <tr className="bg-slate-50 font-medium">
-                <td colSpan={3} className="px-5 py-2.5">
-                  Toplam
-                </td>
-                <td className="px-5 py-2.5 text-right text-red-600">
-                  {money(openItems.totalMinor)}
-                </td>
-              </tr>
-            </Table>
-          )}
-        </Card>
+              </Table>
+            )}
+          </Card>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

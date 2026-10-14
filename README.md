@@ -9,7 +9,7 @@ Yönetici paneli + sakin portalı; aidat, cari hesap, sayaç paylaşımı, iş t
 | Katman | Teknoloji |
 |---|---|
 | Backend | NestJS 10 · TypeScript · Prisma 6 · PostgreSQL 16 |
-| Frontend | Next.js 15 (App Router) · React 19 · TanStack Query · Tailwind |
+| Frontend | Next.js 15 (App Router) · React 19 · TanStack Query · Bootstrap 4 (Bizzark teması) |
 | Kuyruk / önbellek | Redis 7 (BullMQ) |
 | Doğrulama | Zod (backend ve frontend aynı şemayı paylaşır) |
 | Çalışma ortamı | Docker Compose (postgres · redis · api · web) |
@@ -132,6 +132,41 @@ pano toplamları → ekstre kapanış bakiyesi.
 | 5 | Sakin portalı | |
 | 6 | Raporlar, PDF, KVKK maskesi, ödeme skoru | |
 
+## Tema
+
+Arayüz, **Bizzark** (ThemeForest / Frontted) admin temasının derlenmiş CSS'i
+üzerine kuruludur. Tailwind kullanılmaz.
+
+```
+apps/web/public/theme/
+  css/app.css                  temanın derlemesi (Bootstrap 4 + Bizzark) — DEĞİŞTİRİLMEZ
+  css/vendor-material-icons.css
+  css/custom.css               BİZİM katmanımız: düzen, mini sidebar, koyu mod
+  fonts/material-icons/
+```
+
+Üç dosya `<link>` ile, bu sırayla yüklenir (`src/app/layout.tsx`): app.css →
+ikonlar → custom.css. Webpack'e sokulmaz; 3.4 MB'lık hazır bir derlemenin
+tarayıcı önbelleğinde durması daha iyidir.
+
+**Temanın kendi CSS'i hiç elle düzenlenmez.** Gereken her şey `custom.css`
+içinde ezilir. İki kritik ayrıntı:
+
+- `<html dir="ltr">` zorunludur: tema RTL desteği için her kuralı
+  `[dir=ltr] .x` biçiminde üretmiş.
+- Bu yüzden tema kuralları **(0,2,0)** özgüllüğünde. Kendi düzen kurallarımız
+  da `[dir] .sy-x` biçiminde yazılır; aksi halde `position: fixed` gibi
+  tanımlar sessizce eziliyor (navbar/sidebar akışa düşüyordu).
+
+Görünüm: koyu lacivert marka bloğu + **mavi sidebar** (`sidebar-primary`) +
+**beyaz navbar**, Material Design ikonları, daraltılabilir mini sidebar.
+Koyu mod temada yoktu; `html[data-theme="dark"]` altında yüzey değişkenleri
+(`--sy-surface`, `--sy-border`, …) değiştirilerek kendimiz ekledik; tercih
+`localStorage`'da saklanır ve ilk boyamadan önce uygulanır.
+
+Lisanslı tema kaynağı (`demo/`) depoya girmez; yalnızca kullanılan parçalar
+`public/theme` altına kopyalanmıştır.
+
 ## Faz 1'de gelen ekranlar
 
 | Yol | Ekran |
@@ -144,6 +179,8 @@ pano toplamları → ekstre kapanış bakiyesi.
 | `/finans/aidat` | Aidat tahakkuku: kalem tanımı → önizleme → oluştur; geçmiş dönemler |
 | `/finans/tahsilat` | Tahsilat makbuzu + carinin açık borçları |
 | `/finans/banka` | Ekstre yapıştır-yükle, otomatik eşleştirme, bekleyenleri elle bağla |
+| `/finans/gider` | Gider faturası kaydı + ödenecek faturalar |
+| `/site/daireler` | Daire listesi (blok filtresi, malik/kiracı, durum) |
 
 ### Finans çekirdeğinin kuralları
 

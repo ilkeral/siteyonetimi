@@ -34,7 +34,7 @@ const TYPE_LABELS: Record<AccountRow['type'], string> = {
 
 export default function FinancePage() {
   const [page, setPage] = useState(1);
-  const [type, setType] = useState<string>('');
+  const [type, setType] = useState('');
   const [search, setSearch] = useState('');
   const [letter, setLetter] = useState<string | undefined>();
 
@@ -52,19 +52,19 @@ export default function FinancePage() {
   });
 
   return (
-    <div>
+    <>
       <PageHeader
         title="Finans"
         subtitle="Cari hesaplar ve bakiyeler"
         actions={
           <>
-            <Link href="/finans/aidat" className="btn-ghost text-xs">
+            <Link href="/finans/aidat" className="btn btn-outline-secondary btn-sm">
               Aidat Tahakkuku
             </Link>
-            <Link href="/finans/banka" className="btn-ghost text-xs">
+            <Link href="/finans/banka" className="btn btn-outline-secondary btn-sm">
               Banka Hareketleri
             </Link>
-            <Link href="/finans/tahsilat" className="btn-primary text-xs">
+            <Link href="/finans/tahsilat" className="btn btn-primary btn-sm">
               Tahsilat Gir
             </Link>
           </>
@@ -72,24 +72,31 @@ export default function FinancePage() {
       />
 
       <Card>
-        <div className="flex flex-wrap items-center gap-3 px-5 py-3">
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            placeholder="Cari adı ara"
-            className="field-input max-w-xs"
-          />
+        <div className="card-body py-3 d-flex flex-wrap align-items-center" style={{ gap: '1rem' }}>
+          <div className="search-form" style={{ maxWidth: 320, flex: 1 }}>
+            <input
+              type="search"
+              className="form-control"
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
+              placeholder="Cari adı ara"
+            />
+            <button className="btn" type="button">
+              <i className="material-icons">search</i>
+            </button>
+          </div>
+
           <select
+            className="custom-select"
+            style={{ maxWidth: 200 }}
             value={type}
-            onChange={(e) => {
-              setType(e.target.value);
+            onChange={(event) => {
+              setType(event.target.value);
               setPage(1);
             }}
-            className="field-input max-w-[12rem]"
           >
             <option value="">Tüm cari tipleri</option>
             {Object.entries(TYPE_LABELS).map(([key, label]) => (
@@ -109,38 +116,39 @@ export default function FinancePage() {
         />
 
         {isLoading ? (
-          <Loading />
+          <div className="card-body">
+            <Loading />
+          </div>
         ) : error ? (
-          <div className="p-4">
+          <div className="card-body">
             <ErrorBox error={error} />
           </div>
         ) : !data || data.items.length === 0 ? (
-          <EmptyState message="Cari bulunamadı." />
+          <EmptyState message="Cari bulunamadı." icon="search_off" />
         ) : (
           <>
             <Table
               head={
                 <tr>
-                  <th className="px-5 py-2">Cari Adı</th>
-                  <th className="px-3 py-2">Tip</th>
-                  <th className="px-3 py-2">Kod</th>
-                  <th className="px-5 py-2 text-right">Bakiye</th>
+                  <th>Cari Adı</th>
+                  <th>Tip</th>
+                  <th>Kod</th>
+                  <th className="text-right">Bakiye</th>
                 </tr>
               }
             >
               {data.items.map((account) => (
-                <tr key={account.id} className="hover:bg-slate-50/60">
-                  <td className="px-5 py-2.5">
-                    <Link
-                      href={`/finans/cari/${account.id}`}
-                      className="font-medium text-slate-800 hover:text-brand-700"
-                    >
+                <tr key={account.id}>
+                  <td>
+                    <Link href={`/finans/cari/${account.id}`} className="font-weight-bold">
                       {account.name}
                     </Link>
                   </td>
-                  <td className="px-3 py-2.5 text-slate-500">{TYPE_LABELS[account.type]}</td>
-                  <td className="px-3 py-2.5 text-slate-500">{account.code ?? '—'}</td>
-                  <td className={`px-5 py-2.5 text-right font-medium ${balanceClass(account.balanceMinor)}`}>
+                  <td>
+                    <span className="badge badge-secondary">{TYPE_LABELS[account.type]}</span>
+                  </td>
+                  <td className="text-muted">{account.code ?? '—'}</td>
+                  <td className={`text-right sy-num font-weight-bold ${balanceClass(account.balanceMinor)}`}>
                     {money(account.balanceMinor)}
                   </td>
                 </tr>
@@ -155,6 +163,6 @@ export default function FinancePage() {
           </>
         )}
       </Card>
-    </div>
+    </>
   );
 }

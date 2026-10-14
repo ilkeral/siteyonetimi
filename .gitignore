@@ -24,3 +24,7 @@ Thumbs.db
 !.vscode/extensions.json
 
 *.tsbuildinfo
+
+# ThemeForest teması — lisanslı, repoya girmez (kopyalanan parçalar
+# apps/web/public/theme altında tutulur)
+demo/

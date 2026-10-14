@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import {
@@ -16,8 +17,25 @@ import {
   YAxis,
 } from 'recharts';
 import { api } from '@/lib/api';
-import { CHART_COLORS, date, money, moneyShort } from '@/lib/format';
-import { Card, EmptyState, ErrorBox, Loading, PageHeader, StatCard, Table } from '@/components/ui';
+import {
+  CHART_COLORS,
+  CHART_DANGER,
+  CHART_SUCCESS,
+  chartTextColor,
+  date,
+  money,
+  moneyShort,
+} from '@/lib/format';
+import {
+  Card,
+  EmptyState,
+  ErrorBox,
+  Loading,
+  PageHeader,
+  QuickLink,
+  StatCard,
+  Table,
+} from '@/components/ui';
 
 interface DashboardData {
   collection: {
@@ -46,11 +64,23 @@ interface DashboardData {
     }[];
     totalMinor: number;
   };
-  cash: { items: { id: string; name: string; type: string; balanceMinor: number }[]; totalMinor: number };
+  cash: {
+    items: { id: string; name: string; type: string; balanceMinor: number }[];
+    totalMinor: number;
+  };
   counters: { pendingBankTransactions: number; openTickets: number; overdueDocuments: number };
 }
 
 export default function DashboardPage() {
+  const [tick, setTick] = useState(0);
+
+  // Koyu moda geçilince grafik eksen renkleri yeniden hesaplansın
+  useEffect(() => {
+    const handler = () => setTick((value) => value + 1);
+    window.addEventListener('sy:theme', handler);
+    return () => window.removeEventListener('sy:theme', handler);
+  }, []);
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => api.get<DashboardData>('/finance/dashboard'),
@@ -60,65 +90,113 @@ export default function DashboardPage() {
   if (error) return <ErrorBox error={error} />;
   if (!data) return null;
 
+  const axisColor = chartTextColor();
   const totalOutstanding = data.collection.reduce((a, c) => a + c.outstandingMinor, 0);
 
   return (
-    <div className="space-y-5">
-      <PageHeader title="Özet" subtitle="Sitenin güncel finansal durumu" />
+    <>
+      <PageHeader
+        title="Özet"
+        subtitle="Sitenin güncel finansal durumu"
+        actions={
+          <a href="/finans/aidat" className="btn btn-outline-secondary btn-sm">
+            <i className="material-icons mr-1" style={{ fontSize: 15 }}>
+              settings
+            </i>
+            Aidat Tahakkuku
+          </a>
+        }
+      />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Kasa + Banka" value={money(data.cash.totalMinor)} tone="success" />
-        <StatCard
-          label="Toplam Alacak"
-          value={money(totalOutstanding)}
-          tone={totalOutstanding > 0 ? 'danger' : 'default'}
-          hint="Tahsil edilmemiş aidat"
-        />
-        <StatCard
-          label="Ödenecek Fatura"
-          value={money(data.payables.totalMinor)}
-          tone={data.payables.totalMinor > 0 ? 'warning' : 'default'}
-        />
-        <StatCard
-          label="Bekleyen Banka Hareketi"
-          value={data.counters.pendingBankTransactions}
-          tone={data.counters.pendingBankTransactions > 0 ? 'warning' : 'default'}
-          hint={data.counters.pendingBankTransactions > 0 ? 'Eşleştirme bekliyor' : 'Tümü eşleşti'}
-        />
+      {/* ------------------------------------------------------ hızlı erişim */}
+      <div className="row mb-4">
+        {[
+          { href: '/finans/tahsilat', icon: 'payments', label: 'Tahsilat Gir', color: '#4B98CF' },
+          { href: '/finans/gider', icon: 'receipt_long', label: 'Gider Faturası', color: '#4EB4A5' },
+          { href: '/finans/banka', icon: 'compare_arrows', label: 'Banka Hareketleri', color: '#E3AA75' },
+          { href: '/site', icon: 'people', label: 'Kişiler', color: '#5163C5' },
+        ].map((item) => (
+          <div className="col-sm-6 col-xl-3 mb-3 mb-xl-0" key={item.href}>
+            <QuickLink {...item} />
+          </div>
+        ))}
+      </div>
+
+      <div className="row mb-4">
+        <div className="col-sm-6 col-xl-3 mb-3 mb-xl-0">
+          <StatCard
+            label="Kasa + Banka"
+            value={money(data.cash.totalMinor)}
+            icon="account_balance"
+            tone="success"
+          />
+        </div>
+        <div className="col-sm-6 col-xl-3 mb-3 mb-xl-0">
+          <StatCard
+            label="Toplam Alacak"
+            value={money(totalOutstanding)}
+            hint="Tahsil edilmemiş aidat"
+            icon="trending_up"
+            tone={totalOutstanding > 0 ? 'danger' : 'default'}
+          />
+        </div>
+        <div className="col-sm-6 col-xl-3 mb-3 mb-xl-0">
+          <StatCard
+            label="Ödenecek Fatura"
+            value={money(data.payables.totalMinor)}
+            icon="receipt"
+            tone={data.payables.totalMinor > 0 ? 'warning' : 'default'}
+          />
+        </div>
+        <div className="col-sm-6 col-xl-3">
+          <StatCard
+            label="Bekleyen Banka Hareketi"
+            value={data.counters.pendingBankTransactions}
+            hint={
+              data.counters.pendingBankTransactions > 0 ? 'Eşleştirme bekliyor' : 'Tümü eşleşti'
+            }
+            icon="compare_arrows"
+            tone={data.counters.pendingBankTransactions > 0 ? 'warning' : 'default'}
+          />
+        </div>
       </div>
 
       {/* --------------------------------------------- aidat tahsilat durumu */}
-      <Card title="Aidat Tahsilat Durumu">
-        <div className="h-72 px-3 py-4">
+      <Card title="Aidat Tahsilat Durumu" className="mb-4">
+        <div className="card-body" style={{ height: 300 }} key={tick}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data.collection} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+            <BarChart data={data.collection} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--sy-border)" />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 11, fill: axisColor }}
+                tickLine={false}
+                axisLine={false}
+              />
               <YAxis
-                tickFormatter={(v) => moneyShort(Number(v))}
-                tick={{ fontSize: 11 }}
+                tickFormatter={(value) => moneyShort(Number(value))}
+                tick={{ fontSize: 11, fill: axisColor }}
                 tickLine={false}
                 axisLine={false}
                 width={56}
               />
               <Tooltip
                 formatter={(value: number, name) => [money(value), name]}
-                labelStyle={{ fontSize: 12 }}
-                contentStyle={{ fontSize: 12, borderRadius: 6 }}
+                contentStyle={{
+                  fontSize: 12,
+                  borderRadius: 5,
+                  background: 'var(--sy-surface)',
+                  border: '1px solid var(--sy-border)',
+                  color: 'var(--sy-text)',
+                }}
               />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar
-                dataKey="collectedMinor"
-                name="Tahsil edilen"
-                stackId="a"
-                fill="#16a34a"
-                radius={[0, 0, 0, 0]}
-              />
+              <Legend wrapperStyle={{ fontSize: 12, color: axisColor }} />
+              <Bar dataKey="collectedMinor" name="Tahsil edilen" stackId="a" fill={CHART_SUCCESS} />
               <Bar
                 dataKey="outstandingMinor"
                 name="Tahsil edilemeyen"
                 stackId="a"
-                fill="#dc2626"
+                fill={CHART_DANGER}
                 radius={[3, 3, 0, 0]}
               />
             </BarChart>
@@ -127,53 +205,59 @@ export default function DashboardPage() {
       </Card>
 
       {/* --------------------------------------------------- gelir / gider */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <DistributionCard
-          title="Gider Dağılımı"
-          data={data.distribution.expense}
-          total={data.distribution.expenseTotalMinor}
-        />
-        <DistributionCard
-          title="Gelir Dağılımı"
-          data={data.distribution.income}
-          total={data.distribution.incomeTotalMinor}
-        />
+      <div className="row mb-4">
+        <div className="col-lg-6 mb-4 mb-lg-0">
+          <DistributionCard
+            title="Gider Dağılımı"
+            data={data.distribution.expense}
+            total={data.distribution.expenseTotalMinor}
+            tick={tick}
+          />
+        </div>
+        <div className="col-lg-6">
+          <DistributionCard
+            title="Gelir Dağılımı"
+            data={data.distribution.income}
+            total={data.distribution.incomeTotalMinor}
+            tick={tick}
+          />
+        </div>
       </div>
 
       {/* ------------------------------------------------- ödenecek faturalar */}
       <Card
         title="Ödenecek Faturalar"
-        actions={
-          <span className="text-xs font-medium text-slate-600">
-            Toplam {money(data.payables.totalMinor)}
-          </span>
-        }
+        className="mb-4"
+        actions={<span className="text-muted small">Toplam {money(data.payables.totalMinor)}</span>}
       >
         {data.payables.items.length === 0 ? (
-          <EmptyState message="Ödenecek fatura yok." />
+          <EmptyState message="Ödenecek fatura yok." icon="done_all" />
         ) : (
           <Table
             head={
               <tr>
-                <th className="px-5 py-2">Ödeme Tarihi</th>
-                <th className="px-3 py-2">Evrak No</th>
-                <th className="px-3 py-2">Cari</th>
-                <th className="px-3 py-2">Açıklama</th>
-                <th className="px-5 py-2 text-right">Kalan</th>
+                <th>Ödeme Tarihi</th>
+                <th>Evrak No</th>
+                <th>Cari</th>
+                <th>Açıklama</th>
+                <th className="text-right">Kalan</th>
               </tr>
             }
           >
             {data.payables.items.map((item) => (
-              <tr key={item.documentId} className="hover:bg-slate-50/60">
-                <td className="whitespace-nowrap px-5 py-2.5">
-                  <span className={item.overdue ? 'font-medium text-red-600' : ''}>
-                    {date(item.dueDate)}
-                  </span>
+              <tr key={item.documentId}>
+                <td className={item.overdue ? 'text-danger font-weight-bold' : ''}>
+                  {item.overdue && (
+                    <i className="material-icons mr-1" style={{ fontSize: 14 }}>
+                      error_outline
+                    </i>
+                  )}
+                  {date(item.dueDate)}
                 </td>
-                <td className="px-3 py-2.5 text-slate-500">{item.number}</td>
-                <td className="px-3 py-2.5 font-medium text-slate-700">{item.supplier}</td>
-                <td className="px-3 py-2.5 text-slate-500">{item.description ?? '—'}</td>
-                <td className="px-5 py-2.5 text-right font-medium">{money(item.remainingMinor)}</td>
+                <td className="text-muted">{item.number}</td>
+                <td className="font-weight-bold">{item.supplier}</td>
+                <td className="text-muted">{item.description ?? '—'}</td>
+                <td className="text-right sy-num font-weight-bold">{money(item.remainingMinor)}</td>
               </tr>
             ))}
           </Table>
@@ -181,47 +265,55 @@ export default function DashboardPage() {
       </Card>
 
       {/* ------------------------------------------------------ kasa / banka */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card title="Kasa ve Banka">
-          <Table
-            head={
-              <tr>
-                <th className="px-5 py-2">Hesap</th>
-                <th className="px-5 py-2 text-right">Bakiye</th>
-              </tr>
-            }
-          >
-            {data.cash.items.map((account) => (
-              <tr key={account.id}>
-                <td className="px-5 py-2.5">
-                  {account.name}
-                  <span className="ml-2 text-xs text-slate-400">
-                    {account.type === 'CASH' ? 'Kasa' : 'Banka'}
-                  </span>
-                </td>
-                <td className="px-5 py-2.5 text-right font-medium">{money(account.balanceMinor)}</td>
-              </tr>
-            ))}
-          </Table>
-        </Card>
+      <div className="row">
+        <div className="col-lg-6 mb-4 mb-lg-0">
+          <Card title="Kasa ve Banka">
+            <Table
+              head={
+                <tr>
+                  <th>Hesap</th>
+                  <th className="text-right">Bakiye</th>
+                </tr>
+              }
+            >
+              {data.cash.items.map((account) => (
+                <tr key={account.id}>
+                  <td>
+                    {account.name}
+                    <span className="badge badge-secondary ml-2">
+                      {account.type === 'CASH' ? 'Kasa' : 'Banka'}
+                    </span>
+                  </td>
+                  <td className="text-right sy-num font-weight-bold">
+                    {money(account.balanceMinor)}
+                  </td>
+                </tr>
+              ))}
+            </Table>
+          </Card>
+        </div>
 
-        <Card title="Dikkat Gerektirenler">
-          <ul className="divide-y divide-slate-50 text-sm">
-            <AlertRow
-              label="Eşleşmeyi bekleyen banka hareketi"
-              count={data.counters.pendingBankTransactions}
-              href="/finans/banka"
-            />
-            <AlertRow
-              label="Vadesi geçmiş borç evrakı"
-              count={data.counters.overdueDocuments}
-              href="/finans"
-            />
-            <AlertRow label="Açık iş takibi" count={data.counters.openTickets} />
-          </ul>
-        </Card>
+        <div className="col-lg-6">
+          <Card title="Dikkat Gerektirenler">
+            <div className="list-group list-group-flush">
+              <AlertRow
+                icon="compare_arrows"
+                label="Eşleşmeyi bekleyen banka hareketi"
+                count={data.counters.pendingBankTransactions}
+                href="/finans/banka"
+              />
+              <AlertRow
+                icon="event_busy"
+                label="Vadesi geçmiş borç evrakı"
+                count={data.counters.overdueDocuments}
+                href="/finans"
+              />
+              <AlertRow icon="build" label="Açık iş takibi" count={data.counters.openTickets} />
+            </div>
+          </Card>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -229,17 +321,19 @@ function DistributionCard({
   title,
   data,
   total,
+  tick,
 }: {
   title: string;
   data: { name: string; amountMinor: number }[];
   total: number;
+  tick: number;
 }) {
   return (
     <Card title={title}>
       {data.length === 0 ? (
-        <EmptyState message="Bu dönemde kayıt yok." />
+        <EmptyState message="Bu dönemde kayıt yok." icon="pie_chart" />
       ) : (
-        <div className="h-64 px-3 py-3">
+        <div className="card-body position-relative" style={{ height: 280 }} key={tick}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -256,43 +350,62 @@ function DistributionCard({
               </Pie>
               <Tooltip
                 formatter={(value: number, name) => [money(value), name]}
-                contentStyle={{ fontSize: 12, borderRadius: 6 }}
+                contentStyle={{
+                  fontSize: 12,
+                  borderRadius: 5,
+                  background: 'var(--sy-surface)',
+                  border: '1px solid var(--sy-border)',
+                  color: 'var(--sy-text)',
+                }}
               />
               <Legend wrapperStyle={{ fontSize: 11 }} />
             </PieChart>
           </ResponsiveContainer>
-          <p className="-mt-6 text-center text-sm font-semibold text-slate-700">{money(total)}</p>
+          <div
+            className="position-absolute text-center"
+            style={{ top: '45%', left: 0, right: 0, pointerEvents: 'none' }}
+          >
+            <div className="text-muted" style={{ fontSize: 11 }}>
+              Toplam
+            </div>
+            <strong className="sy-num">{money(total)}</strong>
+          </div>
         </div>
       )}
     </Card>
   );
 }
 
-function AlertRow({ label, count, href }: { label: string; count: number; href?: string }) {
-  const content = (
-    <div className="flex items-center justify-between px-5 py-3">
-      <span className="text-slate-600">{label}</span>
-      <span
-        className={
-          count > 0
-            ? 'rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700'
-            : 'text-xs text-slate-400'
-        }
-      >
-        {count}
+function AlertRow({
+  icon,
+  label,
+  count,
+  href,
+}: {
+  icon: string;
+  label: string;
+  count: number;
+  href?: string;
+}) {
+  const body = (
+    <>
+      <span className="d-flex align-items-center">
+        <i className="material-icons mr-2 text-muted" style={{ fontSize: 18 }}>
+          {icon}
+        </i>
+        {label}
       </span>
-    </div>
+      <span className={count > 0 ? 'badge badge-warning' : 'text-muted small'}>{count}</span>
+    </>
   );
 
-  return (
-    <li>
-      {href && count > 0 ? (
-        <Link href={href} className="block transition hover:bg-slate-50">
-          {content}
-        </Link>
-      ) : (
-        content
-      )}
-    </li>
+  const className = 'list-group-item d-flex align-items-center justify-content-between';
+
+  return href && count > 0 ? (
+    <Link href={href} className={`${className} list-group-item-action`}>
+      {body}
+    </Link>
+  ) : (
+    <div className={className}>{body}</div>
   );
 }
