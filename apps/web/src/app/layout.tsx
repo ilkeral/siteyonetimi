@@ -2,6 +2,13 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Providers } from './providers';
 
+/**
+ * Tema CSS'leri `public/` altından servis edildiği için Next'in içerik-hash'li
+ * dosya adlandırması devreye girmez. custom.css'te yapılan bir değişikliğin
+ * tarayıcıda kesin görünmesi için bu sayıyı artırın.
+ */
+const THEME_VERSION = '3';
+
 export const metadata: Metadata = {
   title: 'Site Yönetim Paneli',
   description: 'Çok siteli apartman ve site yönetim platformu',
@@ -20,14 +27,19 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="tr" dir="ltr" suppressHydrationWarning>
       <head>
-        <link rel="stylesheet" href="/theme/css/app.css" />
-        <link rel="stylesheet" href="/theme/css/vendor-material-icons.css" />
-        <link rel="stylesheet" href="/theme/css/custom.css" />
-        {/* Koyu mod tercihini ilk boyamadan önce uygula — aksi halde
-            açık temada bir kare görünüp "yanıp sönüyor" */}
+        <link rel="stylesheet" href={`/theme/css/app.css?v=${THEME_VERSION}`} />
+        <link rel="stylesheet" href={`/theme/css/vendor-material-icons.css?v=${THEME_VERSION}`} />
+        <link rel="stylesheet" href={`/theme/css/custom.css?v=${THEME_VERSION}`} />
+        {/* Koyu mod tercihini ilk boyamadan önce uygula — aksi halde açık
+            temada bir kare görünüp "yanıp sönüyor".
+
+            Varsayılan DAİMA açık temadır; işletim sisteminin koyu mod tercihi
+            dikkate ALINMAZ. Panelin referans tasarımı açık temadır ve
+            kullanıcıların çoğu burada onu bekliyor; koyu moda yalnızca
+            navbar'daki düğmeyle bilinçli olarak geçilir. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('sy.theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}})();`,
+            __html: `(function(){try{if(localStorage.getItem('sy.theme')==='dark'){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}})();`,
           }}
         />
       </head>

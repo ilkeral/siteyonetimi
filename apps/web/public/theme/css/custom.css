@@ -32,6 +32,11 @@
   --sy-sidebar-bg: #4b98cf; /* sidebar-primary */
   --sy-navbar-bg: #ffffff; /* açık navbar */
   --sy-brand-bg: #1a3142; /* marka bloğu */
+
+  /* Tarayıcıya "bu sayfa açık temalı" de: işletim sistemi koyu moddayken
+     Chrome'un otomatik karartması ve koyu kaydırma çubuğu/form denetimleri
+     devreye girmesin. Koyu modu biz data-theme ile yönetiyoruz. */
+  color-scheme: light;
 }
 
 /* ---------------------------------------------------------------- düzen
@@ -115,6 +120,9 @@ body {
   margin-left: var(--sy-sidebar-w);
   padding-top: var(--sy-navbar-h);
   min-height: 100vh;
+  /* Zemini açıkça veriyoruz: body'den sızan rengе bel bağlamıyoruz */
+  background: var(--sy-body-bg);
+  color: var(--sy-text);
   transition: margin-left 0.2s ease;
 }
 
@@ -450,6 +458,7 @@ a.sy-quick,
    =========================================================================== */
 
 html[data-theme='dark'] {
+  color-scheme: dark;
   --sy-body-bg: #0f1b26;
   --sy-surface: #15242f;
   --sy-surface-2: #1b2d3a;
