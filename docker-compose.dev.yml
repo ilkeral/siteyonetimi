@@ -1,0 +1,34 @@
+# Geliştirme override'ı:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# Kaynak kod bind mount edilir, hot reload çalışır, node_modules konteynerde kalır.
+
+services:
+  api:
+    build:
+      target: development
+    command: ["pnpm", "--filter", "@sy/api", "run", "dev"]
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ./apps/api:/app/apps/api
+      - ./packages:/app/packages
+      - /app/node_modules
+      - /app/apps/api/node_modules
+      - /app/packages/db/node_modules
+      - /app/packages/shared/node_modules
+      - storage:/app/storage
+
+  web:
+    build:
+      target: development
+    command: ["pnpm", "--filter", "@sy/web", "run", "dev"]
+    environment:
+      NODE_ENV: development
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - ./apps/web:/app/apps/web
+      - ./packages:/app/packages
+      - /app/node_modules
+      - /app/apps/web/node_modules
+      - /app/apps/web/.next

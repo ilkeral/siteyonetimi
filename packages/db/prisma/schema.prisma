@@ -1,0 +1,1141 @@
+// ===========================================================================
+//  Site Yönetim Platformu — veri modeli
+//
+//  ÇOK KİRACILILIK KURALI
+//  Aşağıda `siteId` alanı bulunan her model "tenant'lı" modeldir ve sorguları
+//  otomatik olarak aktif site ile filtrelenir (bkz. apps/api/src/tenant).
+//  Tenant'sız (global) modeller: User, Site, SiteMembership, RefreshToken,
+//  AuditLog.
+//
+//  PARA BİRİMİ: tüm tutarlar Decimal(18,4), TRY.
+//  BAKİYE: hiçbir yerde saklanmaz; daima LedgerEntry toplamından türetilir.
+// ===========================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// ENUM'LAR
+// ---------------------------------------------------------------------------
+
+enum Role {
+  SUPER_ADMIN // tüm siteler
+  SITE_ADMIN // site yöneticisi
+  ACCOUNTANT // muhasebe
+  TECHNICIAN // teknik personel
+  SECURITY // güvenlik
+  RESIDENT // sakin (portal)
+}
+
+enum Language {
+  TR
+  EN
+  DE
+  RU
+}
+
+enum SiteType {
+  APARTMAN
+  SITE
+  REZIDANS
+  IS_MERKEZI
+  TOPLU_YAPI
+}
+
+enum OccupancyRole {
+  OWNER // kat maliki
+  TENANT // kiracı
+}
+
+enum UnitStatus {
+  OCCUPIED // dolu
+  EMPTY // boş
+  UNDER_RENOVATION // tadilatta
+}
+
+enum AccountType {
+  PERSON // kişi carisi
+  SUPPLIER // tedarikçi
+  EMPLOYEE // personel
+  CASH // kasa
+  BANK // banka
+}
+
+enum CategoryKind {
+  INCOME
+  EXPENSE
+}
+
+enum DocumentType {
+  OPENING_BALANCE // açılış/devir fişi
+  DUES_ACCRUAL // aidat tahakkuku
+  METER_DISTRIBUTION // sayaç paylaşım tahakkuku
+  LATE_FEE // gecikme tazminatı
+  EXPENSE // gider faturası
+  INCOME // diğer gelir
+  COLLECTION // tahsilat makbuzu
+  PAYMENT // ödeme (tedarikçiye)
+  TRANSFER // kasa/banka virman
+}
+
+enum DocumentStatus {
+  DRAFT
+  POSTED
+  CANCELLED
+}
+
+enum DuesDistributionMethod {
+  EQUAL // eşit
+  BY_AREA // m² oranında
+  BY_LAND_SHARE // arsa payına göre
+  BY_SHARE_RATIO // hisse oranına göre
+}
+
+/// Aidatın kime yazılacağı: malik mi, oturan (kiracı varsa kiracı) mı
+enum DuesLiabilityRule {
+  OWNER
+  OCCUPANT
+}
+
+enum LateFeeMethod {
+  MONTHLY_PERCENT // aylık % (KMK 20: aylık %5'e kadar)
+  DAILY_PERCENT // günlük %
+  NONE
+}
+
+enum MeterType {
+  FUEL // yakıt / ısı payı
+  HOT_WATER
+  COLD_WATER
+  COOLING
+  ELECTRIC
+}
+
+enum WaterPricingMethod {
+  UNIT_PRICE // birim fiyat üzerinden
+  INVOICE_TOTAL // fatura tutarının tüketime bölünmesi
+}
+
+enum DistributionStatus {
+  DRAFT
+  APPROVED
+  CANCELLED
+}
+
+enum TicketStatus {
+  WAITING // beklemede
+  REVIEWING // inceleniyor
+  AWAITING_REPLY // cevap bekleniyor
+  FORWARDED // iletildi
+  PLANNED // planlandı
+  IN_PROGRESS // çalışılıyor
+  POSTPONED // ertelendi
+  COMPLETED // tamamlandı
+}
+
+enum TicketRequestType {
+  COMPLAINT // şikayet
+  FAULT // arıza
+  QUESTION // soru / bilgi
+  SUGGESTION // öneri
+  REQUEST // istek / talep
+  SATISFACTION // memnuniyet
+  OTHER // diğer
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TicketChannel {
+  PORTAL // sakin portalı / mobil
+  PHONE
+  IN_PERSON
+  EMAIL
+  OTHER
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  PUSH
+  WHATSAPP
+  VOICE
+  POST
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  COMPLETED
+  CANCELLED
+}
+
+enum MessageStatus {
+  QUEUED
+  SENDING
+  SENT
+  DELIVERED
+  FAILED
+}
+
+enum BankMatchStatus {
+  UNMATCHED
+  AUTO_MATCHED
+  MANUAL_MATCHED
+  IGNORED
+}
+
+enum LostItemStatus {
+  FOUND // bulundu, emanette
+  CLAIMED // sahibi çıktı
+  DELIVERED // teslim edildi
+  DISPOSED // imha / bağış
+}
+
+// ---------------------------------------------------------------------------
+// KİMLİK & KİRACILIK  (global — siteId YOK)
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  fullName     String
+  phone        String?
+  isActive     Boolean  @default(true)
+  isSuperAdmin Boolean  @default(false)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships   SiteMembership[]
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+  assignedTickets Ticket[]       @relation("TicketAssignee")
+
+  @@index([email])
+}
+
+model Site {
+  id        String   @id @default(uuid())
+  name      String
+  type      SiteType @default(APARTMAN)
+  city      String?
+  district  String?
+  address   String?
+  postCode  String?
+  taxNumber String?
+  timezone  String   @default("Europe/Istanbul")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  settings      SiteSettings?
+  memberships   SiteMembership[]
+  blocks        Block[]
+  units         Unit[]
+  people        Person[]
+  vehicles      Vehicle[]
+  occupancies   UnitOccupancy[]
+  accounts      Account[]
+  categories    Category[]
+  documents     Document[]
+  ledgerEntries LedgerEntry[]
+  duesItems     DuesItem[]
+  duesRuns      DuesRun[]
+  bankTransactions BankTransaction[]
+  meterDistributions MeterDistribution[]
+  meters        Meter[]
+  departments   Department[]
+  tickets       Ticket[]
+  templates     NotificationTemplate[]
+  campaigns     NotificationCampaign[]
+  messages      NotificationMessage[]
+  announcements Announcement[]
+  incidents     SecurityIncident[]
+  lostItems     LostItem[]
+  visitorLogs   VisitorLog[]
+}
+
+/// Apsiyon'daki "Parametreler" modalının karşılığı — site başına tek kayıt
+model SiteSettings {
+  id     String @id @default(uuid())
+  siteId String @unique
+  site   Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  // --- Genel
+  fiscalStartMonth Int    @default(1) // başlangıç dönemi (ay)
+  fiscalStartYear  Int?
+  currency         String @default("TRY")
+
+  // --- Aidat
+  duesDistributionMethod DuesDistributionMethod @default(EQUAL)
+  duesLiabilityRule      DuesLiabilityRule      @default(OCCUPANT)
+  /// Son ödeme kaidesi: ayın kaçı (örn. 15 → her ayın 15'i)
+  dueDayOfMonth          Int                    @default(15)
+  defaultCashAccountId   String?
+
+  // --- Gecikme tazminatı
+  lateFeeMethod      LateFeeMethod @default(MONTHLY_PERCENT)
+  lateFeeRate        Decimal       @default(5) @db.Decimal(9, 4) // yüzde
+  lateFeeGraceDays   Int           @default(0)
+  applyLateFee       Boolean       @default(true)
+
+  // --- Zorunlu alanlar (veri kalitesi)
+  requireNationalId    Boolean @default(false)
+  requireEmail         Boolean @default(false)
+  requireMobilePhone   Boolean @default(true)
+  requireDeviceOnTicket Boolean @default(false)
+  requireVisitorId     Boolean @default(false)
+
+  // --- İletişim
+  communicationLanguages Language[] @default([TR])
+  notificationSenderName String?
+  notificationFooter     String?
+
+  // --- Banka entegrasyonu
+  autoMatchBankTransactions Boolean @default(true)
+  /// Tahsilatın hangi borca önce sayılacağı: OLDEST_FIRST | NEWEST_FIRST
+  paymentAllocationRule     String  @default("OLDEST_FIRST")
+
+  // --- Serbest tanımlı alanlar / politika metinleri
+  customFieldLabels Json? // { "ozelAlan1": "Aidat Grubu", ... }
+  policyTexts       Json? // { "kvkk": "...", "uyelik": "..." }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SiteMembership {
+  id        String   @id @default(uuid())
+  userId    String
+  siteId    String
+  role      Role
+  /// RESIDENT rolündeki kullanıcıyı ilgili kişi kaydına bağlar
+  personId  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  site   Site    @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  person Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, siteId])
+  @@index([siteId, role])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  userAgent String?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  siteId     String?
+  userId     String?
+  action     String // CREATE | UPDATE | DELETE | LOGIN | POST | CANCEL ...
+  entityType String
+  entityId   String?
+  before     Json?
+  after      Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([siteId, entityType, entityId])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// YAPI: BLOK / DAİRE
+// ---------------------------------------------------------------------------
+
+model Block {
+  id        String   @id @default(uuid())
+  siteId    String
+  name      String // A Blok
+  code      String?
+  floorCount Int?
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  site  Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  units Unit[]
+
+  @@unique([siteId, name])
+  @@index([siteId])
+}
+
+model Unit {
+  id      String  @id @default(uuid())
+  siteId  String
+  blockId String?
+
+  doorNumber String // daire no
+  floor      Int?
+  /// Brüt m²
+  area       Decimal? @db.Decimal(10, 2)
+  /// Arsa payı
+  landShare  Decimal? @db.Decimal(12, 6)
+  /// Hisse oranı (dağıtım katsayısı)
+  shareRatio Decimal  @default(1) @db.Decimal(12, 6)
+  roomCount  String? // 3+1
+  status     UnitStatus @default(OCCUPIED)
+  /// Bu daire aidattan muaf mı
+  isExempt   Boolean  @default(false)
+  note       String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  site        Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  block       Block?          @relation(fields: [blockId], references: [id], onDelete: SetNull)
+  occupancies UnitOccupancy[]
+  documents   Document[]
+  ledgerEntries LedgerEntry[]
+  meters      Meter[]
+  unitReadings UnitMeterReading[]
+  tickets     Ticket[]
+  incidents   SecurityIncident[]
+
+  @@unique([siteId, blockId, doorNumber])
+  @@index([siteId])
+}
+
+// ---------------------------------------------------------------------------
+// KİŞİLER
+// ---------------------------------------------------------------------------
+
+model Person {
+  id     String @id @default(uuid())
+  siteId String
+
+  firstName    String
+  lastName     String
+  nationalId   String? // TC Kimlik
+  email        String?
+  phone        String? // cep
+  phone2       String? // 2. telefon
+  birthDate    DateTime?
+  language     Language @default(TR)
+  photoPath    String?
+  note         String?
+  /// İcra/hukuki takipte mi
+  inLegalAction Boolean @default(false)
+  isActive     Boolean  @default(true)
+  /// Serbest tanımlı alanlar (SiteSettings.customFieldLabels ile eşleşir)
+  customFields Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  site        Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  occupancies UnitOccupancy[]
+  vehicles    Vehicle[]
+  account     Account?
+  memberships SiteMembership[]
+  tickets     Ticket[]
+  messages    NotificationMessage[]
+  incidents   SecurityIncident[]
+
+  @@index([siteId, lastName, firstName])
+  @@index([siteId, nationalId])
+}
+
+/// Daire–Kişi ilişkisi: TARİHLİ ve ROLLÜ.
+/// Bir dönemin borcunun kime yazılacağı bu tablodan türetilir.
+model UnitOccupancy {
+  id       String        @id @default(uuid())
+  siteId   String
+  unitId   String
+  personId String
+  role     OccupancyRole
+
+  startDate DateTime
+  endDate   DateTime?
+  /// Banka ekstresinde bu kişiyi tanıyan kod (otomatik eşleştirme anahtarı)
+  bankPaymentCode String?
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  site   Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  unit   Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, unitId, startDate])
+  @@index([siteId, personId])
+  @@index([bankPaymentCode])
+}
+
+model Vehicle {
+  id       String  @id @default(uuid())
+  siteId   String
+  personId String
+
+  plate     String
+  brand     String?
+  model     String?
+  color     String?
+  hgsNumber String?
+  status    String? // misafir / sakin / yasaklı
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  site   Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, plate])
+}
+
+// ---------------------------------------------------------------------------
+// FİNANS ÇEKİRDEĞİ: CARİ / EVRAK / HAREKET
+// ---------------------------------------------------------------------------
+
+model Account {
+  id       String      @id @default(uuid())
+  siteId   String
+  type     AccountType
+  name     String
+  code     String?
+  personId String?     @unique
+
+  // Tedarikçi alanları
+  taxNumber String?
+  taxOffice String?
+  phone     String?
+  email     String?
+  address   String?
+
+  // Kasa/banka alanları
+  iban      String?
+  bankName  String?
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  site    Site    @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  person  Person? @relation(fields: [personId], references: [id], onDelete: Cascade)
+  entries LedgerEntry[]
+  bankTransactions BankTransaction[]
+
+  @@index([siteId, type])
+  @@index([siteId, name])
+}
+
+model Category {
+  id       String       @id @default(uuid())
+  siteId   String
+  kind     CategoryKind
+  name     String
+  parentId String?
+  order    Int          @default(0)
+  isActive Boolean      @default(true)
+
+  site     Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("CategoryTree")
+  entries  LedgerEntry[]
+
+  @@unique([siteId, kind, name])
+  @@index([siteId, kind])
+}
+
+/// Evrak = finansal olayın başlığı. Hareketleri (LedgerEntry) taşır.
+model Document {
+  id     String         @id @default(uuid())
+  siteId String
+  type   DocumentType
+  status DocumentStatus @default(DRAFT)
+
+  number      String // site içinde benzersiz evrak no
+  date        DateTime // evrak tarihi
+  dueDate     DateTime? // son ödeme tarihi
+  /// Dönem: 'YYYY-MM' (aidat/sayaç tahakkukları için)
+  period      String?
+  description String?
+  /// Tahakkukun ilgili olduğu daire (aidat/sayaç)
+  unitId      String?
+  /// Tahsilatın kapattığı tahakkuk (COLLECTION → DUES_ACCRUAL)
+  parentId    String?
+  /// Bu evrakı üreten toplu iş
+  duesRunId   String?
+  meterDistributionId String?
+  /// Talep masrafından üretilen gider evrakı
+  ticketId    String?
+
+  totalAmount Decimal  @default(0) @db.Decimal(18, 4)
+  cancelledAt DateTime?
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  site     Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  unit     Unit?     @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  parent   Document? @relation("DocumentTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Document[] @relation("DocumentTree")
+  duesRun  DuesRun?  @relation(fields: [duesRunId], references: [id], onDelete: SetNull)
+  meterDistribution MeterDistribution? @relation(fields: [meterDistributionId], references: [id], onDelete: SetNull)
+  ticket   Ticket?   @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+
+  entries          LedgerEntry[]
+  matchedBankTx    BankTransaction[]
+
+  @@unique([siteId, number])
+  @@index([siteId, type, date])
+  @@index([siteId, period])
+  @@index([siteId, dueDate])
+}
+
+/// Cari hareket. Bakiye = SUM(debit) - SUM(credit)
+model LedgerEntry {
+  id         String   @id @default(uuid())
+  siteId     String
+  documentId String
+  accountId  String
+  categoryId String?
+  unitId     String?
+
+  date        DateTime
+  /// Borç (cariyi borçlandırır)
+  debit       Decimal  @default(0) @db.Decimal(18, 4)
+  /// Alacak (cariyi alacaklandırır)
+  credit      Decimal  @default(0) @db.Decimal(18, 4)
+  description String?
+  /// Aidat kalemi kırılımı (aidat, demirbaş, yakıt avansı ...)
+  duesItemId  String?
+
+  createdAt DateTime @default(now())
+
+  site     Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  document Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  account  Account   @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  unit     Unit?     @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  duesItem DuesItem? @relation(fields: [duesItemId], references: [id], onDelete: SetNull)
+
+  @@index([siteId, accountId, date])
+  @@index([siteId, date])
+  @@index([documentId])
+}
+
+// ---------------------------------------------------------------------------
+// AİDAT
+// ---------------------------------------------------------------------------
+
+model DuesItem {
+  id     String @id @default(uuid())
+  siteId String
+
+  name               String // Aidat, Demirbaş, Yakıt Avansı
+  defaultAmount      Decimal                 @default(0) @db.Decimal(18, 4)
+  distributionMethod DuesDistributionMethod?
+  categoryId         String?
+  isRecurring        Boolean                 @default(true)
+  isActive           Boolean                 @default(true)
+  order              Int                     @default(0)
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  site    Site          @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  entries LedgerEntry[]
+  runLines DuesRunLine[]
+
+  @@unique([siteId, name])
+  @@index([siteId])
+}
+
+/// Bir dönemin toplu aidat tahakkuku çalışması
+model DuesRun {
+  id     String @id @default(uuid())
+  siteId String
+
+  period      String // 'YYYY-MM'
+  issueDate   DateTime
+  dueDate     DateTime
+  description String?
+  status      DocumentStatus @default(DRAFT)
+  totalAmount Decimal        @default(0) @db.Decimal(18, 4)
+  unitCount   Int            @default(0)
+  postedAt    DateTime?
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  site      Site          @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  lines     DuesRunLine[]
+  documents Document[]
+
+  @@unique([siteId, period])
+  @@index([siteId])
+}
+
+model DuesRunLine {
+  id         String  @id @default(uuid())
+  duesRunId  String
+  duesItemId String
+  amount     Decimal @db.Decimal(18, 4)
+  distributionMethod DuesDistributionMethod
+
+  duesRun  DuesRun  @relation(fields: [duesRunId], references: [id], onDelete: Cascade)
+  duesItem DuesItem @relation(fields: [duesItemId], references: [id], onDelete: Restrict)
+
+  @@unique([duesRunId, duesItemId])
+}
+
+// ---------------------------------------------------------------------------
+// BANKA
+// ---------------------------------------------------------------------------
+
+model BankTransaction {
+  id        String @id @default(uuid())
+  siteId    String
+  accountId String // hangi banka hesabı
+
+  date        DateTime
+  amount      Decimal  @db.Decimal(18, 4) // + tahsilat, - ödeme
+  description String
+  balance     Decimal? @db.Decimal(18, 4)
+  reference   String?
+  /// Ekstreden okunan ham satır
+  raw         Json?
+  /// Açıklamadan çıkarılan ödeme kodu
+  extractedPaymentCode String?
+
+  matchStatus       BankMatchStatus @default(UNMATCHED)
+  matchedDocumentId String?
+  matchedAt         DateTime?
+  matchedById       String?
+
+  importBatchId String?
+  createdAt     DateTime @default(now())
+
+  site            Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  account         Account   @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  matchedDocument Document? @relation(fields: [matchedDocumentId], references: [id], onDelete: SetNull)
+
+  @@unique([siteId, accountId, date, amount, reference])
+  @@index([siteId, matchStatus])
+  @@index([siteId, date])
+}
+
+// ---------------------------------------------------------------------------
+// SAYAÇ / PAYLAŞIM HESABI
+// ---------------------------------------------------------------------------
+
+model Meter {
+  id     String @id @default(uuid())
+  siteId String
+  unitId String? // null ise ANA sayaç
+
+  type         MeterType
+  serialNumber String?
+  name         String?
+  /// Çarpan (ör. ortak kolon sayacı katsayısı)
+  factor       Decimal  @default(1) @db.Decimal(12, 6)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  site     Site               @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  unit     Unit?              @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  mainReadings MainMeterReading[]
+  unitReadings UnitMeterReading[]
+
+  @@index([siteId, type])
+  @@index([siteId, unitId])
+}
+
+/// Bir dönemin paylaşım hesabı (Apsiyon: "Sayaç Dağıtımları")
+model MeterDistribution {
+  id     String @id @default(uuid())
+  siteId String
+
+  // --- Oluşacak evrak bilgileri
+  period        String // 'YYYY-MM'
+  documentDate  DateTime
+  name          String?
+  categoryId    String?
+  dueDate       DateTime
+  applyLateFee  Boolean  @default(false)
+  lateFeeStartDate DateTime?
+  documentNote  String?
+
+  // --- Dağıtım parametreleri
+  /// Su çıkış sıcaklığı (°C) — sıcak su enerji payı hesabında
+  waterOutletTemp   Decimal @default(50) @db.Decimal(6, 2)
+  /// Yakıt alt ısı değeri sabiti (kcal)
+  fuelLowerHeatValue Decimal @default(8250) @db.Decimal(12, 4)
+  waterPricingMethod WaterPricingMethod @default(UNIT_PRICE)
+  waterUnitPrice     Decimal @default(0) @db.Decimal(18, 6)
+  /// Ortak tüketim/ceza yüzdesi
+  penaltyPercent     Decimal @default(0) @db.Decimal(9, 4)
+  /// Isıtılan ortak alan payı yüzdesi (KMK: yakıtta sabit gider payı)
+  fixedSharePercent  Decimal @default(0) @db.Decimal(9, 4)
+
+  // --- Fatura bağlantıları
+  fuelInvoiceDocumentId     String?
+  waterInvoiceDocumentId    String?
+  electricInvoiceDocumentId String?
+
+  status      DistributionStatus @default(DRAFT)
+  totalAmount Decimal            @default(0) @db.Decimal(18, 4)
+  approvedAt  DateTime?
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  site         Site               @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  mainReadings MainMeterReading[]
+  unitReadings UnitMeterReading[]
+  documents    Document[]
+
+  @@unique([siteId, period])
+  @@index([siteId, status])
+}
+
+model MainMeterReading {
+  id             String @id @default(uuid())
+  distributionId String
+  meterId        String?
+
+  type         MeterType
+  readingDate  DateTime
+  previousValue Decimal  @default(0) @db.Decimal(18, 6)
+  currentValue  Decimal  @default(0) @db.Decimal(18, 6)
+  /// Dönemin gerçek fatura tutarı (bu tür için)
+  invoiceAmount Decimal  @default(0) @db.Decimal(18, 4)
+  /// Bu tür hesaplanmasın (ör. "Yakıt Hesaplanmasın")
+  skip          Boolean  @default(false)
+
+  distribution MeterDistribution @relation(fields: [distributionId], references: [id], onDelete: Cascade)
+  meter        Meter?            @relation(fields: [meterId], references: [id], onDelete: SetNull)
+
+  @@unique([distributionId, type])
+}
+
+model UnitMeterReading {
+  id             String @id @default(uuid())
+  distributionId String
+  unitId         String
+  meterId        String?
+
+  type          MeterType
+  previousValue Decimal @default(0) @db.Decimal(18, 6)
+  currentValue  Decimal @default(0) @db.Decimal(18, 6)
+  /// Hesaplanan tüketim (currentValue - previousValue) * factor
+  consumption   Decimal @default(0) @db.Decimal(18, 6)
+  /// Dağıtım sonucu bu daireye düşen tutar
+  amount        Decimal @default(0) @db.Decimal(18, 4)
+  note          String?
+
+  distribution MeterDistribution @relation(fields: [distributionId], references: [id], onDelete: Cascade)
+  unit         Unit              @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  meter        Meter?            @relation(fields: [meterId], references: [id], onDelete: SetNull)
+
+  @@unique([distributionId, unitId, type])
+  @@index([distributionId])
+}
+
+// ---------------------------------------------------------------------------
+// İŞ TAKİBİ (KANBAN)
+// ---------------------------------------------------------------------------
+
+model Department {
+  id       String  @id @default(uuid())
+  siteId   String
+  name     String
+  isActive Boolean @default(true)
+  order    Int     @default(0)
+
+  site    Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  tickets Ticket[]
+
+  @@unique([siteId, name])
+}
+
+model Ticket {
+  id     String @id @default(uuid())
+  siteId String
+
+  number      Int
+  date        DateTime          @default(now())
+  subject     String
+  description String
+  status      TicketStatus      @default(WAITING)
+  requestType TicketRequestType @default(REQUEST)
+  priority    TicketPriority    @default(NORMAL)
+  channel     TicketChannel     @default(PORTAL)
+
+  personId     String?
+  unitId       String?
+  departmentId String?
+  assigneeId   String?
+  /// İlgili alan/bölüm (asansör, otopark, çatı ...)
+  area         String?
+  dueDate      DateTime?
+  completedAt  DateTime?
+  /// Kanban kolonu içindeki sıra
+  boardOrder   Int      @default(0)
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  site       Site        @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  person     Person?     @relation(fields: [personId], references: [id], onDelete: SetNull)
+  unit       Unit?       @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  assignee   User?       @relation("TicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  comments    TicketComment[]
+  attachments TicketAttachment[]
+  expenses    TicketExpense[]
+  survey      TicketSurveyResponse?
+  documents   Document[]
+
+  @@unique([siteId, number])
+  @@index([siteId, status, boardOrder])
+  @@index([siteId, assigneeId])
+}
+
+model TicketComment {
+  id       String @id @default(uuid())
+  ticketId String
+  authorId String?
+  body     String
+  /// Sakine görünür mü (iç not ise false)
+  isPublic Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+}
+
+model TicketAttachment {
+  id        String   @id @default(uuid())
+  ticketId  String
+  path      String
+  fileName  String
+  mimeType  String?
+  size      Int?
+  createdAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+}
+
+model TicketExpense {
+  id          String  @id @default(uuid())
+  ticketId    String
+  description String
+  amount      Decimal @db.Decimal(18, 4)
+  /// Gider evrakına dönüştürüldüyse
+  documentId  String?
+  createdAt   DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+}
+
+model TicketSurveyResponse {
+  id        String   @id @default(uuid())
+  ticketId  String   @unique
+  rating    Int // 1-5
+  comment   String?
+  answeredAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// BİLDİRİM MOTORU
+// ---------------------------------------------------------------------------
+
+model NotificationTemplate {
+  id      String              @id @default(uuid())
+  siteId  String
+  channel NotificationChannel
+  language Language           @default(TR)
+
+  name    String
+  subject String?
+  /// Merge field'lı gövde: {{adSoyad}}, {{borcTutari}}, {{odemeLinki}} ...
+  body    String
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  site      Site                   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  campaigns NotificationCampaign[]
+
+  @@unique([siteId, name, channel, language])
+  @@index([siteId, channel])
+}
+
+model NotificationCampaign {
+  id      String              @id @default(uuid())
+  siteId  String
+  channel NotificationChannel
+  templateId String?
+
+  name    String
+  subject String?
+  body    String
+  /// Hedef sorgusu:
+  /// { group, blockIds, occupancyRoles, minDebt, maxDebt, onlyOverdue, includeSecondPhone }
+  audience Json
+  status   CampaignStatus @default(DRAFT)
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  totalCount   Int @default(0)
+  sentCount    Int @default(0)
+  failedCount  Int @default(0)
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  site     Site                  @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  template NotificationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  messages NotificationMessage[]
+
+  @@index([siteId, status])
+}
+
+model NotificationMessage {
+  id         String              @id @default(uuid())
+  siteId     String
+  campaignId String?
+  personId   String?
+  channel    NotificationChannel
+
+  recipient String // e-posta adresi / telefon
+  subject   String?
+  body      String
+  status    MessageStatus @default(QUEUED)
+  error     String?
+  providerMessageId String?
+  sentAt    DateTime?
+  createdAt DateTime @default(now())
+
+  site     Site                  @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  campaign NotificationCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  person   Person?               @relation(fields: [personId], references: [id], onDelete: SetNull)
+
+  @@index([siteId, personId, createdAt])
+  @@index([campaignId, status])
+}
+
+model Announcement {
+  id        String   @id @default(uuid())
+  siteId    String
+  title     String
+  body      String
+  publishAt DateTime @default(now())
+  expireAt  DateTime?
+  isPinned  Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdById String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, publishAt])
+}
+
+// ---------------------------------------------------------------------------
+// GÜVENLİK  (Faz 7 — model şimdiden hazır)
+// ---------------------------------------------------------------------------
+
+model SecurityIncident {
+  id       String   @id @default(uuid())
+  siteId   String
+  date     DateTime
+  staffId  String?
+  personId String?
+  unitId   String?
+  body     String // zengin metin (HTML)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  site   Site    @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  person Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
+  unit   Unit?   @relation(fields: [unitId], references: [id], onDelete: SetNull)
+
+  @@index([siteId, date])
+}
+
+model LostItem {
+  id     String         @id @default(uuid())
+  siteId String
+  status LostItemStatus @default(FOUND)
+
+  itemName    String
+  description String?
+  photoPath   String?
+  lostAt      DateTime?
+  foundAt     DateTime?
+
+  loserName   String?
+  loserPhone  String?
+  finderName  String?
+  finderPhone String?
+  custodianName String?
+  custodianRole String?
+  deliveredTo   String?
+  deliveredAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, status])
+}
+
+model VisitorLog {
+  id         String   @id @default(uuid())
+  siteId     String
+  visitorName String
+  nationalId String?
+  plate      String?
+  unitId     String?
+  enteredAt  DateTime @default(now())
+  exitedAt   DateTime?
+  note       String?
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, enteredAt])
+}
