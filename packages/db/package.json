@@ -22,7 +22,8 @@
     "push": "prisma db push",
     "studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
-    "typecheck": "tsc --noEmit -p tsconfig.build.json"
+    "typecheck": "tsc --noEmit -p tsconfig.build.json",
+    "app-role": "tsx scripts/create-app-role.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

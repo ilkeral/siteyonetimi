@@ -9,10 +9,18 @@ const envSchema = z.object({
   TZ: z.string().default('Europe/Istanbul'),
 
   DATABASE_URL: z.string().min(1, 'DATABASE_URL zorunlu'),
+  /**
+   * PostgreSQL RLS (çok kiracılılığın 3. katmanı). Açıkken DATABASE_URL tablo
+   * sahibi olmayan uygulama rolü olmalı (pnpm db:app-role); sahip/süper
+   * kullanıcı RLS'ye takılmaz ve kurallar sessizce etkisiz kalır.
+   */
+  DB_RLS: z.enum(['on', 'off']).default('off'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
 
   API_PORT: z.coerce.number().int().default(3001),
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
+  /** Bildirimlerdeki bağlantılar (ödeme linki) için web adresi; boşsa CORS_ORIGIN'in ilki */
+  PUBLIC_WEB_URL: z.preprocess((v) => (v === '' ? undefined : v), z.string().url().optional()),
 
   JWT_ACCESS_SECRET: z.string().min(16, 'JWT_ACCESS_SECRET en az 16 karakter olmalı'),
   JWT_REFRESH_SECRET: z.string().min(16, 'JWT_REFRESH_SECRET en az 16 karakter olmalı'),

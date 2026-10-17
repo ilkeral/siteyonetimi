@@ -20,6 +20,7 @@ export class TenantInterceptor implements NestInterceptor {
         siteId: user?.siteId ?? null,
         userId: user?.id ?? null,
         role: user?.role ?? null,
+        personId: user?.personId ?? null,
         isSuperAdmin: user?.isSuperAdmin ?? false,
       },
       () => next.handle(),

@@ -31,6 +31,8 @@ export const TENANT_MODELS = [
   'SecurityIncident',
   'LostItem',
   'VisitorLog',
+  'PaymentScore',
+  'SitePaymentScore',
 ] as const;
 
 export type TenantModel = (typeof TENANT_MODELS)[number];

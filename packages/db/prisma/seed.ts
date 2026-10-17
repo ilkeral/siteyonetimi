@@ -87,6 +87,16 @@ async function main(): Promise<void> {
     },
   });
 
+  const guard = await prisma.user.upsert({
+    where: { email: 'guvenlik@site.local' },
+    update: {},
+    create: {
+      email: 'guvenlik@site.local',
+      passwordHash: await argon2.hash('Guvenlik1234!'),
+      fullName: 'Hasan Bekçi',
+    },
+  });
+
   // -------------------------------------------------------------------- site
   const site = await prisma.site.create({
     data: {
@@ -118,6 +128,7 @@ async function main(): Promise<void> {
     data: [
       { userId: admin.id, siteId, role: 'SITE_ADMIN' },
       { userId: technician.id, siteId, role: 'TECHNICIAN' },
+      { userId: guard.id, siteId, role: 'SECURITY' },
     ],
   });
 
@@ -338,10 +349,79 @@ async function main(): Promise<void> {
     },
   });
 
+  // ------------------------------------------------------------- sakin hesabı
+  // İlk malik portala bağlanır: sakin@site.local ile giriş /portal'a düşer
+  const resident = people[0];
+  const residentHash = await argon2.hash('Sakin1234!');
+  const residentUser = await prisma.user.upsert({
+    where: { email: 'sakin@site.local' },
+    update: { passwordHash: residentHash, isActive: true, fullName: `${resident.firstName} ${resident.lastName}` },
+    create: {
+      email: 'sakin@site.local',
+      passwordHash: residentHash,
+      fullName: `${resident.firstName} ${resident.lastName}`,
+    },
+  });
+  await prisma.siteMembership.create({
+    data: { userId: residentUser.id, siteId, role: 'RESIDENT', personId: resident.id },
+  });
+
+  // ---------------------------------------------------------------- güvenlik
+  // Birkaç araç, ziyaretçi, olay ve emanet kaydı — güvenlik ekranları boş açılmasın
+  const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000);
+  await prisma.vehicle.createMany({
+    data: [
+      { siteId, personId: people[0].id, plate: '34ABC123', brand: 'Renault', model: 'Clio', color: 'Beyaz', status: 'sakin' },
+      { siteId, personId: people[3].id, plate: '34KL4521', brand: 'Fiat', model: 'Egea', color: 'Gri', status: 'sakin' },
+      { siteId, personId: people[5].id, plate: '06ZZ999', status: 'yasaklı' },
+    ],
+  });
+  await prisma.visitorLog.createMany({
+    data: [
+      { siteId, visitorName: 'Murat Kargo', plate: '34MK708', purpose: 'Kargo / Kurye', unitId: units[2].id, enteredAt: hoursAgo(0.5), createdById: guard.id },
+      { siteId, visitorName: 'Selin Aydın', purpose: 'Misafir', unitId: units[0].id, hostPersonId: people[0].id, enteredAt: hoursAgo(2), createdById: guard.id },
+      { siteId, visitorName: 'Usta Ekibi', plate: '34TT1903', purpose: 'Tadilat / Usta', unitId: units[7].id, enteredAt: hoursAgo(27), exitedAt: hoursAgo(19), createdById: guard.id, exitedById: guard.id },
+    ],
+  });
+  await prisma.securityIncident.createMany({
+    data: [
+      {
+        siteId,
+        date: hoursAgo(30),
+        title: 'B Blok otopark kapısı zorlanmış',
+        category: 'TRESPASS',
+        severity: 'HIGH',
+        staffId: guard.id,
+        createdById: guard.id,
+        body: 'Gece devriyesinde B Blok otopark yan kapısının kilidinin zorlandığı görüldü.\nKamera kayıtları yönetime iletildi, kapı geçici olarak zincirle kapatıldı.',
+      },
+      {
+        siteId,
+        date: hoursAgo(75),
+        title: 'Gece geç saatte gürültü şikâyeti',
+        category: 'NOISE',
+        severity: 'LOW',
+        staffId: guard.id,
+        unitId: units[10].id,
+        createdById: guard.id,
+        body: 'Komşu dairelerden gelen şikâyet üzerine daireye gidildi, uyarı yapıldı.',
+      },
+    ],
+  });
+  await prisma.lostItem.createMany({
+    data: [
+      { siteId, number: 1, status: 'FOUND', itemName: 'Siyah çocuk montu', location: 'Oyun parkı', foundAt: hoursAgo(50), finderName: 'Bahçıvan', custodianName: 'Güvenlik kulübesi', custodianRole: 'Güvenlik', createdById: guard.id },
+      { siteId, number: 2, status: 'LOST', itemName: 'Araba anahtarı (Renault)', location: 'Havuz başı', lostAt: hoursAgo(20), loserName: `${resident.firstName} ${resident.lastName}`, loserPhone: resident.phone, createdById: guard.id },
+      { siteId, number: 3, status: 'DELIVERED', itemName: 'Kahverengi cüzdan', location: 'A Blok giriş', foundAt: hoursAgo(120), custodianName: 'Yönetim ofisi', loserName: 'Selin Aydın', deliveredTo: 'Selin Aydın', deliveredAt: hoursAgo(96), createdById: guard.id },
+    ],
+  });
+
   console.log('\n✓ Demo veri hazır');
   console.log(`  Site      : ${site.name} (${site.district}/${site.city})`);
   console.log(`  Giriş     : ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);
   console.log(`  Teknik    : teknik@site.local / Teknik1234!`);
+  console.log(`  Güvenlik  : guvenlik@site.local / Guvenlik1234!`);
+  console.log(`  Sakin     : sakin@site.local / Sakin1234! (${resident.firstName} ${resident.lastName})`);
   console.log(`  Daire     : ${units.length}, Kişi: ${people.length}, Talep: ${ticketSeeds.length}`);
 }
 
@@ -478,6 +558,7 @@ async function seedFinancialHistory(siteId: string): Promise<void> {
           date: paidAt,
           description: `${period} dönemi tahsilatı`,
           totalAmount: amount,
+          paymentChannel: target === cash ? 'CASH' : 'BANK_TRANSFER',
           entries: {
             create: [
               { siteId, accountId, date: paidAt, debit: 0, credit: amount },

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { api, session, type SiteSummary } from '@/lib/api';
 import { getTheme, toggleTheme, type ThemeMode } from '@/lib/theme';
+import { useLogout } from '@/lib/me';
 
 interface MeResponse {
   user: { id: string; fullName: string; email: string; isSuperAdmin: boolean };
@@ -50,12 +51,7 @@ export function Navbar({
     window.location.reload();
   }
 
-  function logout() {
-    const refreshToken = session.refreshToken;
-    if (refreshToken) void api.post('/auth/logout', { refreshToken }).catch(() => undefined);
-    session.clear();
-    router.replace('/giris');
-  }
+  const logout = useLogout();
 
   const initials = (data?.user.fullName ?? '??')
     .split(' ')
@@ -147,7 +143,7 @@ export function Navbar({
             title={theme === 'dark' ? 'Açık moda geç' : 'Koyu moda geç'}
           >
             <i className="material-icons nav-icon">
-              {theme === 'dark' ? 'light_mode' : 'dark_mode'}
+              {theme === 'dark' ? 'brightness_7' : 'brightness_2'}
             </i>
           </button>
         </li>

@@ -236,3 +236,53 @@ describe('genel kurallar', () => {
     expect(r.byType['ELECTRIC']).toBe(toMinor(1234.57));
   });
 });
+
+describe('uyarı metinleri', () => {
+  it('daire etiketini ve Türkçe tür adını kullanır, tekrarlamaz', () => {
+    const labelled: UnitMetaInput[] = [
+      { unitId: 'd1', label: 'A Blok / 1', area: 100 },
+      { unitId: 'd2', label: 'A Blok / 2', area: 100 },
+    ];
+    const r = calculateMeterDistribution(
+      labelled,
+      [
+        { type: 'HOT_WATER', previousValue: 0, currentValue: 10, invoiceAmountMinor: 0 },
+        { type: 'FUEL', previousValue: 0, currentValue: 100, invoiceAmountMinor: toMinor(1000) },
+      ],
+      [{ unitId: 'd1', type: 'HOT_WATER', previousValue: 0, currentValue: 4 }],
+      params,
+    );
+    const missing = r.warnings.filter((w) => w.startsWith('A Blok / 2 dairesinde Sıcak Su okuması yok'));
+    // Sıcak su hem su hem yakıt adımında okunur; uyarı yine tek kez çıkar
+    expect(missing).toHaveLength(1);
+    expect(r.warnings.some((w) => w.includes('d2'))).toBe(false);
+  });
+});
+
+describe('yakıt satır bileşenleri', () => {
+  it('sıcak su enerjisi, sabit ve değişken payı ayrı işaretler', () => {
+    const r = calculateMeterDistribution(
+      units,
+      [
+        { type: 'HOT_WATER', previousValue: 0, currentValue: 10, invoiceAmountMinor: 0 },
+        { type: 'FUEL', previousValue: 0, currentValue: 1000, invoiceAmountMinor: toMinor(10000) },
+      ],
+      [
+        { unitId: 'd1', type: 'HOT_WATER', previousValue: 0, currentValue: 5 },
+        { unitId: 'd2', type: 'HOT_WATER', previousValue: 0, currentValue: 5 },
+        { unitId: 'd3', type: 'HOT_WATER', previousValue: 0, currentValue: 0 },
+        { unitId: 'd1', type: 'FUEL', previousValue: 0, currentValue: 10 },
+        { unitId: 'd2', type: 'FUEL', previousValue: 0, currentValue: 10 },
+        { unitId: 'd3', type: 'FUEL', previousValue: 0, currentValue: 20 },
+      ],
+      { ...params, fixedSharePercent: 30 },
+    );
+    const fuel = r.lines.filter((l) => l.type === 'FUEL');
+    const total = (c: string) => sum(fuel.filter((l) => l.component === c).map((l) => l.amountMinor));
+    expect(new Set(fuel.map((l) => l.component))).toEqual(new Set(['HOT_WATER_ENERGY', 'FIXED', 'VARIABLE']));
+    expect(total('HOT_WATER_ENERGY') + total('FIXED') + total('VARIABLE')).toBe(toMinor(10000));
+    // Sabit pay, sıcak su düşüldükten sonra kalanın %30'u
+    expect(total('FIXED')).toBe(Math.round(((toMinor(10000) - total('HOT_WATER_ENERGY')) * 30) / 100));
+    expect(r.lines.filter((l) => l.type !== 'FUEL').every((l) => l.component === undefined)).toBe(true);
+  });
+});

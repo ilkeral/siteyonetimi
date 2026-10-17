@@ -1,4 +1,5 @@
 import { distributeByWeights, distributeEqually, sum } from './money';
+import { METER_TYPE_LABELS } from './labels';
 
 /**
  * SAYAÇ PAYLAŞIM (DAĞITIM) MOTORU
@@ -65,6 +66,8 @@ export interface UnitReadingInput {
 
 export interface UnitMetaInput {
   unitId: string;
+  /** Uyarılarda görünecek ad (ör. "A Blok / 5"); verilmezse unitId */
+  label?: string;
   area?: number | null;
   shareRatio?: number | null;
   isExempt?: boolean;
@@ -77,7 +80,17 @@ export interface UnitTypeResult {
   amountMinor: number;
   /** Okuma girilmediği için tahmin edildi mi */
   estimated: boolean;
+  /**
+   * Yakıt satırlarının hangi paydan geldiği:
+   *   HOT_WATER_ENERGY → sıcak suyun tükettiği yakıt (tüketim = sıcak su m³)
+   *   FIXED            → ısınmada sabit gider payı (m²)
+   *   VARIABLE         → ısınmada değişken pay (pay ölçer okuması)
+   * Diğer türlerde yoktur.
+   */
+  component?: MeterLineComponent;
 }
+
+export type MeterLineComponent = 'HOT_WATER_ENERGY' | 'FIXED' | 'VARIABLE';
 
 export interface MeterCalcResult {
   lines: UnitTypeResult[];
@@ -101,6 +114,7 @@ export function calculateMeterDistribution(
   const commonConsumption: Record<string, number> = {};
 
   const active = units.filter((u) => !u.isExempt);
+  const nameOf = (u: UnitMetaInput) => u.label ?? u.unitId;
   const mainByType = new Map(mainReadings.map((m) => [m.type, m]));
 
   /** Bir tür için daire tüketimlerini (ve tahminleri) üretir */
@@ -112,15 +126,15 @@ export function calculateMeterDistribution(
 
     const raw = active.map((u) => {
       const r = byUnit.get(u.unitId);
-      if (!r) return { unitId: u.unitId, value: null as number | null };
+      if (!r) return { unit: u, unitId: u.unitId, value: null as number | null };
       const delta = (r.currentValue - r.previousValue) * (r.factor ?? 1);
       if (delta < 0) {
         warnings.push(
-          `${u.unitId} dairesinde ${type} sayacı geri gitmiş (önceki: ${r.previousValue}, güncel: ${r.currentValue}). 0 kabul edildi.`,
+          `${nameOf(u)} dairesinde ${METER_TYPE_LABELS[type]} sayacı geri gitmiş (önceki: ${r.previousValue}, güncel: ${r.currentValue}). 0 kabul edildi.`,
         );
-        return { unitId: u.unitId, value: 0 };
+        return { unit: u, unitId: u.unitId, value: 0 };
       }
-      return { unitId: u.unitId, value: delta };
+      return { unit: u, unitId: u.unitId, value: delta };
     });
 
     const known = raw.filter((r) => r.value !== null).map((r) => r.value as number);
@@ -133,7 +147,7 @@ export function calculateMeterDistribution(
       const estimate = average * (1 + params.penaltyPercent / 100);
       if (average > 0) {
         warnings.push(
-          `${r.unitId} dairesinde ${type} okuması yok; ortalama tüketim ${
+          `${nameOf(r.unit)} dairesinde ${METER_TYPE_LABELS[type]} okuması yok; ortalama tüketim ${
             params.penaltyPercent > 0 ? `+%${params.penaltyPercent} ceza ile ` : ''
           }tahmin edildi.`,
         );
@@ -146,6 +160,7 @@ export function calculateMeterDistribution(
     type: MeterType,
     rows: { unitId: string; consumption: number; estimated: boolean }[],
     amounts: number[],
+    component?: MeterLineComponent,
   ) {
     rows.forEach((row, i) => {
       lines.push({
@@ -154,6 +169,7 @@ export function calculateMeterDistribution(
         consumption: round6(row.consumption),
         amountMinor: amounts[i] ?? 0,
         estimated: row.estimated,
+        ...(component ? { component } : {}),
       });
     });
   }
@@ -175,7 +191,7 @@ export function calculateMeterDistribution(
 
     if (mainTotal > 0 && unitTotal > mainTotal) {
       warnings.push(
-        `${type}: daire tüketimleri toplamı (${round6(unitTotal)}) ana sayaçtan (${round6(
+        `${METER_TYPE_LABELS[type]}: daire tüketimleri toplamı (${round6(unitTotal)}) ana sayaçtan (${round6(
           mainTotal,
         )}) büyük. Ortak tüketim 0 kabul edildi.`,
       );
@@ -223,7 +239,7 @@ export function calculateMeterDistribution(
         hotRows.map((r) => r.consumption),
       );
       // Sıcak suyun YAKIT payı ayrı bir satır olarak FUEL türünde yazılır
-      pushLines('FUEL', hotRows, amounts);
+      pushLines('FUEL', hotRows, amounts, 'HOT_WATER_ENERGY');
     }
 
     // --- 2b) Kalan yakıt = ısıtma
@@ -243,6 +259,7 @@ export function calculateMeterDistribution(
           'FUEL',
           active.map((u) => ({ unitId: u.unitId, consumption: 0, estimated: false })),
           amounts,
+          'FIXED',
         );
       }
 
@@ -263,7 +280,7 @@ export function calculateMeterDistribution(
             'Yakıt için daire pay ölçer okuması bulunamadı; değişken pay m² oranında dağıtıldı.',
           );
         }
-        pushLines('FUEL', heatRows, amounts);
+        pushLines('FUEL', heatRows, amounts, 'VARIABLE');
       }
     }
 
@@ -288,7 +305,9 @@ export function calculateMeterDistribution(
     byType,
     totalMinor: sum(lines.map((l) => l.amountMinor)),
     commonConsumption,
-    warnings,
+    // Aynı tür birden çok adımda okunduğu için (ör. sıcak su hem su hem yakıt
+    // hesabında) aynı uyarı tekrar üretilebilir
+    warnings: [...new Set(warnings)],
   };
 }
 

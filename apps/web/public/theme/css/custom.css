@@ -571,3 +571,766 @@ html[data-theme='dark'] .sy-letters button:hover {
 html[data-theme='dark'] .recharts-cartesian-grid line {
   stroke: var(--sy-border);
 }
+
+/* ---------------------------------------------------------------- iş takibi
+
+   Kanban panosu: 8 kolon yatay kayar, kolon gövdesi kendi içinde dikey
+   kayar. Renkler yüzey değişkenlerinden geldiği için koyu mod ayrıca
+   tanımlanmaz.
+   -------------------------------------------------------------------- */
+
+.sy-board-filters {
+  gap: 0.5rem;
+}
+
+[dir] .sy-board-filters .custom-select {
+  width: auto;
+  max-width: 200px;
+}
+
+.sy-board {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  align-items: flex-start;
+}
+
+.sy-board__column {
+  flex: 0 0 272px;
+  display: flex;
+  flex-direction: column;
+  background: var(--sy-surface-2);
+  border: 1px solid var(--sy-border);
+  border-radius: 6px;
+  max-height: calc(100vh - var(--sy-navbar-h) - 220px);
+  min-height: 240px;
+}
+
+.sy-board__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-top: 3px solid transparent;
+  border-radius: 6px 6px 0 0;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--sy-text);
+}
+
+.sy-board__count {
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-border);
+  border-radius: 10px;
+  padding: 0 8px;
+  font-size: 12px;
+  color: var(--sy-text-muted);
+}
+
+.sy-board__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 8px 8px;
+  border-radius: 0 0 6px 6px;
+  transition: background-color 0.15s;
+}
+
+.sy-board__body.is-over {
+  background: rgba(75, 152, 207, 0.08);
+}
+
+.sy-board__placeholder {
+  height: 56px;
+  margin-bottom: 8px;
+  border: 2px dashed var(--sy-primary);
+  border-radius: 6px;
+  background: rgba(75, 152, 207, 0.06);
+}
+
+.sy-board__empty,
+.sy-board__hint {
+  text-align: center;
+  color: var(--sy-text-muted);
+  font-size: 12px;
+  padding: 16px 0;
+}
+
+.sy-board__hint {
+  padding: 4px 0 0;
+}
+
+.sy-ticket {
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-border);
+  border-left: 3px solid transparent;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  cursor: grab;
+  font-size: 13px;
+  box-shadow: 0 1px 2px rgba(17, 43, 74, 0.06);
+  transition: box-shadow 0.15s;
+}
+
+.sy-ticket:hover {
+  box-shadow: 0 3px 8px rgba(17, 43, 74, 0.12);
+}
+
+.sy-ticket:focus-visible {
+  outline: 2px solid var(--sy-primary);
+  outline-offset: 1px;
+}
+
+.sy-ticket.is-overdue {
+  border-left-color: var(--sy-danger);
+}
+
+.sy-ticket.is-dragging {
+  display: none;
+}
+
+.sy-ticket__no {
+  color: var(--sy-text-muted);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.sy-ticket__subject {
+  font-weight: 600;
+  color: var(--sy-text);
+  line-height: 1.3;
+}
+
+.sy-ticket__meta {
+  color: var(--sy-text-muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.sy-ticket__foot {
+  display: flex;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--sy-text-muted);
+}
+
+.sy-ticket__foot .material-icons {
+  font-size: 14px;
+  vertical-align: -2px;
+  margin-right: 2px;
+}
+
+.sy-ticket-type {
+  color: #fff;
+  font-weight: 500;
+}
+
+/* Talep kartı */
+.sy-comment {
+  border-left: 3px solid var(--sy-primary);
+  background: var(--sy-surface-2);
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.sy-comment.is-internal {
+  border-left-color: var(--sy-warning);
+}
+
+.sy-invoice-box {
+  border: 1px solid var(--sy-border);
+  border-radius: 6px;
+  padding: 12px 12px 8px;
+  background: var(--sy-surface-2);
+}
+
+.sy-stars button {
+  background: none;
+  border: 0;
+  padding: 0 2px;
+  color: var(--sy-border);
+  cursor: pointer;
+}
+
+.sy-stars button.is-on {
+  color: #f5b301;
+}
+
+.sy-stars .material-icons {
+  font-size: 32px;
+}
+
+/* ---------------------------------------------------------------- sayaç sihirbazı */
+
+.sy-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.25rem;
+}
+
+.sy-steps li {
+  flex: 1 1 180px;
+}
+
+.sy-steps button,
+.sy-steps__item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-border);
+  border-radius: 6px;
+  color: var(--sy-text-muted);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sy-steps__no {
+  flex: 0 0 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sy-surface-2);
+  border: 1px solid var(--sy-border);
+  font-size: 13px;
+}
+
+.sy-steps .is-done button,
+.sy-steps .is-done .sy-steps__item {
+  color: var(--sy-text);
+}
+
+.sy-steps .is-done .sy-steps__no {
+  background: var(--sy-success);
+  border-color: var(--sy-success);
+  color: #fff;
+}
+
+.sy-steps .is-active button,
+.sy-steps .is-active .sy-steps__item {
+  border-color: var(--sy-primary);
+  color: var(--sy-primary);
+  box-shadow: 0 0 0 1px var(--sy-primary);
+}
+
+.sy-steps .is-active .sy-steps__no {
+  background: var(--sy-primary);
+  border-color: var(--sy-primary);
+  color: #fff;
+}
+
+/* Tablo içi sayı girişleri */
+[dir] .sy-cell {
+  min-width: 96px;
+  max-width: 140px;
+  margin-left: auto;
+}
+
+.sy-subrow > td {
+  background: var(--sy-surface-2);
+  padding-left: 2.5rem;
+}
+
+.sy-subrow table td {
+  border-top: 0;
+}
+
+.sy-import {
+  background: var(--sy-surface-2);
+}
+
+/* ---------------------------------------------------------------- iletişim */
+
+.sy-channel-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sy-channel-picker button {
+  flex: 1 1 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-border);
+  border-radius: 6px;
+  color: var(--sy-text-muted);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sy-channel-picker button.is-active {
+  border-color: var(--sy-primary);
+  color: var(--sy-primary);
+  box-shadow: 0 0 0 1px var(--sy-primary);
+}
+
+.sy-merge {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.sy-merge button {
+  border: 1px dashed var(--sy-border);
+  background: var(--sy-surface-2);
+  color: var(--sy-text);
+  border-radius: 12px;
+  padding: 1px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sy-merge button:hover {
+  border-color: var(--sy-primary);
+  color: var(--sy-primary);
+}
+
+/* SMS balonu / e-posta kartı görünümlü örnek mesaj */
+.sy-message-sample {
+  background: var(--sy-surface-2);
+  border: 1px solid var(--sy-border);
+  border-radius: 14px 14px 14px 4px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.sy-message-sample.is-email {
+  border-radius: 6px;
+}
+
+.sy-message-sample__to {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+@media (min-width: 1200px) {
+  [dir] .sy-sticky {
+    position: sticky;
+    top: calc(var(--sy-navbar-h) + 16px);
+  }
+}
+
+.sy-dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin-bottom: 1rem;
+}
+
+.sy-dl dt {
+  color: var(--sy-text-muted);
+  font-weight: 400;
+}
+
+.sy-dl dd {
+  margin: 0;
+}
+
+/* ---------------------------------------------------------------- sakin portalı
+
+   Panelden bağımsız kabuk: sabit sidebar yok, üstte marka + yatay menü.
+   Mobilde menü yatay kayar.
+   -------------------------------------------------------------------- */
+
+.sy-portal {
+  min-height: 100vh;
+  background: var(--sy-body-bg);
+}
+
+.sy-portal__container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.sy-portal__header {
+  background: var(--sy-brand-bg);
+  color: #fff;
+  padding-top: 10px;
+}
+
+[dir] .sy-portal__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+[dir] .sy-portal__brand:hover,
+[dir] .sy-portal__user:hover {
+  color: #fff;
+  text-decoration: none;
+}
+
+[dir] .sy-portal__user {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.sy-portal__nav {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  margin-top: 8px;
+  scrollbar-width: none;
+}
+
+[dir] .sy-portal__nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  color: rgba(255, 255, 255, 0.7);
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.sy-portal__nav a .material-icons {
+  font-size: 18px;
+}
+
+[dir] .sy-portal__nav a:hover {
+  color: #fff;
+  text-decoration: none;
+}
+
+[dir] .sy-portal__nav a.is-active {
+  color: #fff;
+  border-bottom-color: var(--sy-primary);
+}
+
+.sy-balance {
+  background: var(--sy-success);
+  color: #fff;
+  border: 0;
+}
+
+.sy-balance.is-debt {
+  background: linear-gradient(135deg, var(--sy-primary-dark), var(--sy-primary));
+}
+
+.sy-balance .sy-stat__label {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.sy-balance__amount {
+  font-size: 2.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 4px 0;
+}
+
+.sy-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Talep yazışması */
+.sy-chat {
+  max-width: 85%;
+  background: var(--sy-surface-2);
+  border: 1px solid var(--sy-border);
+  border-radius: 12px 12px 12px 4px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+}
+
+.sy-chat.mine {
+  margin-left: auto;
+  background: rgba(75, 152, 207, 0.1);
+  border-color: rgba(75, 152, 207, 0.3);
+  border-radius: 12px 12px 4px 12px;
+}
+
+.sy-chat__meta {
+  font-size: 11px;
+  color: var(--sy-text-muted);
+  margin-bottom: 2px;
+}
+
+/* Talep aşamaları: Alındı → İşlemde → Tamamlandı */
+.sy-progress-steps {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  counter-reset: step;
+}
+
+.sy-progress-steps li {
+  flex: 1;
+  text-align: center;
+  position: relative;
+  color: var(--sy-text-muted);
+  font-size: 13px;
+  padding-top: 28px;
+}
+
+.sy-progress-steps li::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: calc(50% - 8px);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--sy-surface);
+  border: 2px solid var(--sy-border);
+  z-index: 1;
+}
+
+.sy-progress-steps li + li::after {
+  content: '';
+  position: absolute;
+  top: 13px;
+  right: 50%;
+  width: 100%;
+  height: 2px;
+  background: var(--sy-border);
+}
+
+.sy-progress-steps li.is-done {
+  color: var(--sy-text);
+  font-weight: 600;
+}
+
+.sy-progress-steps li.is-done::before {
+  background: var(--sy-success);
+  border-color: var(--sy-success);
+}
+
+.sy-progress-steps li.is-done + li.is-done::after {
+  background: var(--sy-success);
+}
+
+.sy-pinned {
+  border-left: 3px solid var(--sy-warning);
+}
+
+/* ---------------------------------------------------------------- raporlar */
+
+[dir] .sy-report-card {
+  color: var(--sy-text);
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+[dir] .sy-report-card:hover {
+  text-decoration: none;
+  transform: translateY(-2px);
+}
+
+.sy-picklist {
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--sy-border);
+  border-radius: 4px;
+  background: var(--sy-surface);
+}
+
+.sy-picklist__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  margin: 0;
+  cursor: pointer;
+  border-bottom: 1px solid var(--sy-border);
+  font-size: 13px;
+}
+
+.sy-picklist__item:hover {
+  background: var(--sy-surface-2);
+}
+
+.sy-report__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sy-score-hero {
+  font-size: 4rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--sy-text);
+}
+
+/* Segment dağılımı: segmentler arasında 2px yüzey boşluğu */
+.sy-segments {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+}
+
+.sy-segments span {
+  border-radius: 4px;
+  min-width: 4px;
+}
+
+.sy-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  margin-right: 8px;
+  flex: 0 0 10px;
+}
+
+.sy-hbar {
+  height: 8px;
+  background: var(--sy-surface-2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.sy-hbar span {
+  display: block;
+  height: 100%;
+  background: var(--sy-primary);
+  border-radius: 4px;
+}
+
+/* Yazdır: yalnızca rapor gövdesi — menüler, form ve düğmeler gizlenir */
+@media print {
+  [dir] .sy-sidebar,
+  [dir] .sy-navbar,
+  .no-print,
+  .sy-backdrop {
+    display: none !important;
+  }
+
+  [dir] .sy-content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  .card {
+    box-shadow: none !important;
+    break-inside: avoid-page;
+  }
+
+  .sy-report__block {
+    break-inside: auto;
+  }
+
+  .table-responsive {
+    overflow: visible !important;
+  }
+}
+
+/* ---------------------------------------------------------------- güvenlik */
+
+/* Plaka: Türkiye plakası görünümü (mavi şerit + çerçeve) */
+.sy-plate {
+  display: inline-block;
+  padding: 1px 6px 1px 12px;
+  border: 1px solid var(--sy-text);
+  border-left: 6px solid #1f4fa8;
+  border-radius: 3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: var(--sy-text);
+  background: var(--sy-surface);
+}
+
+/* Düz metin alanı: HTML yorumlanmaz, satır sonları korunur */
+.sy-plain-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Yalnızca gösterim amaçlı adım çubuğu (tıklanamaz — düğme değil) */
+.sy-steps__item {
+  cursor: default;
+}
+
+/* Dar ekranda çok sekmeli başlık yatay kaysın, sayfa taşmasın */
+[dir] .sy-tabs-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+[dir] .sy-tabs-scroll .nav-link {
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- gelir-gider tablosu */
+
+/* Ay sütunları yatay kayarken satır adı sabit kalsın */
+[dir] .sy-month-table th[scope='row'] {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 190px;
+  background: var(--sy-surface);
+}
+
+[dir] .sy-month-table thead th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+
+[dir] .sy-month-table .sy-month-table__section th[scope='row'] {
+  padding-top: 0.9rem;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--sy-text-muted);
+}
+
+[dir] .sy-month-table .sy-month-table__subtotal th,
+[dir] .sy-month-table .sy-month-table__subtotal td {
+  background: var(--sy-surface-2);
+  font-weight: 700;
+}
+
+[dir] .sy-month-table .sy-month-table__net th,
+[dir] .sy-month-table .sy-month-table__net td {
+  border-top: 2px solid var(--sy-text);
+  font-weight: 700;
+}
+
+/* Özet kartı telefonda: iki sütunlu yerleşimde ikon + uzun tutar ("₺1.048.725,00")
+   sığmıyor ve sayfayı taşırıyordu. İkon gizlenir, tutar küçülür. */
+@media (max-width: 575.98px) {
+  [dir] .sy-stat-card .card-body > .material-icons {
+    display: none;
+  }
+
+  [dir] .sy-stat-card .sy-stat__value {
+    font-size: 1.1rem;
+    overflow-wrap: anywhere;
+  }
+}

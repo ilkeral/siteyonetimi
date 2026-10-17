@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import type { PaymentChannel } from '@sy/db';
 import { toMinor } from '@sy/shared';
 import { PRISMA, type ExtendedPrismaClient } from '../prisma/prisma.client';
 import { LedgerService } from './ledger.service';
@@ -13,6 +14,8 @@ export interface CollectionInput {
   description?: string;
   /** Banka hareketinden geliyorsa ilişkilendirilecek kayıt */
   bankTransactionId?: string;
+  /** Verilmezse paranın girdiği hesaptan türetilir: kasa → elden, banka → havale */
+  channel?: PaymentChannel;
 }
 
 export interface ExpenseInput {
@@ -70,6 +73,7 @@ export class TransactionsService {
       type: 'COLLECTION',
       date: input.date,
       description: input.description ?? `${account.name} tahsilatı`,
+      paymentChannel: input.channel ?? (cashAccount.type === 'CASH' ? 'CASH' : 'BANK_TRANSFER'),
       entries: [
         { accountId: input.accountId, creditMinor: amountMinor },
         { accountId: input.cashAccountId, debitMinor: amountMinor },

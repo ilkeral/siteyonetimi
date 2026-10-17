@@ -20,7 +20,8 @@
     "db:studio": "pnpm --filter @sy/db run studio",
     "docker:dev": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
     "docker:down": "docker compose -f docker-compose.yml -f docker-compose.dev.yml down",
-    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,yml,yaml}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,yml,yaml}\"",
+    "db:app-role": "pnpm --filter @sy/db run app-role"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

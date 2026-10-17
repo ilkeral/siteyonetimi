@@ -1,5 +1,5 @@
 import { BadRequestException, type ArgumentMetadata, type PipeTransform } from '@nestjs/common';
-import type { ZodSchema } from 'zod';
+import type { ZodType, ZodTypeDef } from 'zod';
 
 /**
  * `@Body(new ZodBody(personSchema)) dto: PersonInput`
@@ -8,7 +8,8 @@ import type { ZodSchema } from 'zod';
  * birebir aynı kuralları kullanırız.
  */
 export class ZodBody<T> implements PipeTransform {
-  constructor(private readonly schema: ZodSchema<T>) {}
+  // Girdi tipi serbest: default/transform içeren şemalarda girdi ≠ çıktı
+  constructor(private readonly schema: ZodType<T, ZodTypeDef, unknown>) {}
 
   transform(value: unknown, _metadata: ArgumentMetadata): T {
     const result = this.schema.safeParse(value);

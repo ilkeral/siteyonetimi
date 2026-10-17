@@ -10,6 +10,12 @@ import { HealthController } from './health/health.controller';
 import { SitesModule } from './sites/sites.module';
 import { FinanceModule } from './finance/finance.module';
 import { PeopleModule } from './people/people.module';
+import { TicketsModule } from './tickets/tickets.module';
+import { MetersModule } from './meters/meters.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { PortalModule } from './portal/portal.module';
+import { ReportsModule } from './reports/reports.module';
+import { SecurityModule } from './security/security.module';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter';
 import { APP_FILTER } from '@nestjs/core';
 
@@ -25,6 +31,12 @@ import { APP_FILTER } from '@nestjs/core';
     SitesModule,
     FinanceModule,
     PeopleModule,
+    TicketsModule,
+    MetersModule,
+    NotificationsModule,
+    PortalModule,
+    ReportsModule,
+    SecurityModule,
   ],
   controllers: [HealthController],
   providers: [

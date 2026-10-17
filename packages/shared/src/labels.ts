@@ -185,3 +185,30 @@ export const MERGE_FIELDS = [
 ] as const;
 
 export type MergeFieldKey = (typeof MERGE_FIELDS)[number]['key'];
+
+// ---------------------------------------------------------------- güvenlik
+
+export const INCIDENT_CATEGORY_LABELS = {
+  THEFT: 'Hırsızlık',
+  DAMAGE: 'Hasar',
+  NOISE: 'Gürültü / Komşuluk',
+  TRESPASS: 'İzinsiz Giriş',
+  FIRE: 'Yangın / Duman',
+  ACCIDENT: 'Kaza / Yaralanma',
+  TECHNICAL: 'Teknik (su baskını, elektrik)',
+  OTHER: 'Diğer',
+} as const;
+
+export const INCIDENT_SEVERITY_LABELS = {
+  LOW: 'Düşük',
+  MEDIUM: 'Orta',
+  HIGH: 'Yüksek',
+} as const;
+
+export const LOST_ITEM_STATUS_LABELS = {
+  LOST: 'Kayıp Bildirimi',
+  FOUND: 'Emanette',
+  CLAIMED: 'Sahibi Çıktı',
+  DELIVERED: 'Teslim Edildi',
+  DISPOSED: 'İmha / Bağış',
+} as const;

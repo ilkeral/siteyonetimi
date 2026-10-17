@@ -117,14 +117,15 @@ export function StatCard({
   }[tone];
 
   return (
-    <div className="card card-shadow mb-0 h-100">
+    <div className="card card-shadow mb-0 h-100 sy-stat-card">
       <div className="card-body d-flex align-items-center">
         {icon && (
           <span className={`material-icons mr-3 ${toneClass || 'text-muted'}`} style={{ fontSize: 34 }}>
             {icon}
           </span>
         )}
-        <div className="flex">
+        {/* min-width: 0 — dar sütunda metin sarılsın, kartı dışarı itmesin */}
+        <div className="flex" style={{ minWidth: 0 }}>
           <div className="sy-stat__label">{label}</div>
           <div className={`sy-stat__value sy-num ${toneClass}`}>{value}</div>
           {hint && <div className="text-muted" style={{ fontSize: 12 }}>{hint}</div>}

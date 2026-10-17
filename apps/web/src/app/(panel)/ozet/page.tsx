@@ -111,8 +111,8 @@ export default function DashboardPage() {
       {/* ------------------------------------------------------ hızlı erişim */}
       <div className="row mb-4">
         {[
-          { href: '/finans/tahsilat', icon: 'payments', label: 'Tahsilat Gir', color: '#4B98CF' },
-          { href: '/finans/gider', icon: 'receipt_long', label: 'Gider Faturası', color: '#4EB4A5' },
+          { href: '/finans/tahsilat', icon: 'credit_card', label: 'Tahsilat Gir', color: '#4B98CF' },
+          { href: '/finans/gider', icon: 'receipt', label: 'Gider Faturası', color: '#4EB4A5' },
           { href: '/finans/banka', icon: 'compare_arrows', label: 'Banka Hareketleri', color: '#E3AA75' },
           { href: '/site', icon: 'people', label: 'Kişiler', color: '#5163C5' },
         ].map((item) => (

@@ -77,6 +77,14 @@ enum CategoryKind {
   EXPENSE
 }
 
+/// Tahsilatın geldiği kanal — ödeme skorunda "dijital kanal payı" ve kanal dağılımı
+enum PaymentChannel {
+  BANK_TRANSFER // havale/EFT, banka ekstresinden eşleşen
+  CARD // çevrimiçi kart ödemesi (sakin portalı)
+  CASH // kasaya elden tahsilat makbuzu
+  OTHER
+}
+
 enum DocumentType {
   OPENING_BALANCE // açılış/devir fişi
   DUES_ACCRUAL // aidat tahakkuku
@@ -202,10 +210,28 @@ enum BankMatchStatus {
 }
 
 enum LostItemStatus {
+  LOST // kayıp bildirimi — eşya henüz bulunmadı
   FOUND // bulundu, emanette
-  CLAIMED // sahibi çıktı
+  CLAIMED // sahibi çıktı, teslim bekliyor
   DELIVERED // teslim edildi
   DISPOSED // imha / bağış
+}
+
+enum IncidentCategory {
+  THEFT // hırsızlık
+  DAMAGE // hasar
+  NOISE // gürültü / komşuluk
+  TRESPASS // izinsiz giriş
+  FIRE // yangın / duman
+  ACCIDENT // kaza / yaralanma
+  TECHNICAL // teknik arıza kaynaklı (su baskını, elektrik)
+  OTHER
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
 }
 
 // ---------------------------------------------------------------------------
@@ -271,6 +297,8 @@ model Site {
   incidents     SecurityIncident[]
   lostItems     LostItem[]
   visitorLogs   VisitorLog[]
+  paymentScores PaymentScore[]
+  sitePaymentScores SitePaymentScore[]
 }
 
 /// Apsiyon'daki "Parametreler" modalının karşılığı — site başına tek kayıt
@@ -426,6 +454,7 @@ model Unit {
   unitReadings UnitMeterReading[]
   tickets     Ticket[]
   incidents   SecurityIncident[]
+  visitorLogs VisitorLog[]
 
   @@unique([siteId, blockId, doorNumber])
   @@index([siteId])
@@ -465,6 +494,8 @@ model Person {
   tickets     Ticket[]
   messages    NotificationMessage[]
   incidents   SecurityIncident[]
+  hostedVisits VisitorLog[]
+  paymentScores PaymentScore[]
 
   @@index([siteId, lastName, firstName])
   @@index([siteId, nationalId])
@@ -594,6 +625,8 @@ model Document {
   ticketId    String?
 
   totalAmount Decimal  @default(0) @db.Decimal(18, 4)
+  /// Yalnızca tahsilat (COLLECTION) evraklarında
+  paymentChannel PaymentChannel?
   cancelledAt DateTime?
   createdById String?
   createdAt   DateTime @default(now())
@@ -791,6 +824,8 @@ model MeterDistribution {
   documentNote  String?
 
   // --- Dağıtım parametreleri
+  /// Şebeke suyu giriş sıcaklığı (°C) — sıcak su enerji payı hesabında
+  waterInletTemp    Decimal @default(15) @db.Decimal(6, 2)
   /// Su çıkış sıcaklığı (°C) — sıcak su enerji payı hesabında
   waterOutletTemp   Decimal @default(50) @db.Decimal(6, 2)
   /// Yakıt alt ısı değeri sabiti (kcal)
@@ -1084,13 +1119,19 @@ model Announcement {
 // ---------------------------------------------------------------------------
 
 model SecurityIncident {
-  id       String   @id @default(uuid())
+  id       String           @id @default(uuid())
   siteId   String
   date     DateTime
+  title    String
+  category IncidentCategory @default(OTHER)
+  severity IncidentSeverity @default(LOW)
+  /// Olay anında görevli personel (kullanıcı)
   staffId  String?
   personId String?
   unitId   String?
-  body     String // zengin metin (HTML)
+  /// Düz metin — HTML olarak yorumlanmaz
+  body     String
+  createdById String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1101,14 +1142,20 @@ model SecurityIncident {
   @@index([siteId, date])
 }
 
+/// Kayıp eşya: LOST → FOUND → CLAIMED → DELIVERED, emanetteyken DISPOSED.
+/// Geçiş kuralları `@sy/shared/security` içindedir.
 model LostItem {
   id     String         @id @default(uuid())
   siteId String
+  /// Site içi emanet numarası
+  number Int
   status LostItemStatus @default(FOUND)
 
   itemName    String
   description String?
   photoPath   String?
+  /// Bulunduğu / kaybedildiği yer
+  location    String?
   lostAt      DateTime?
   foundAt     DateTime?
 
@@ -1120,12 +1167,16 @@ model LostItem {
   custodianRole String?
   deliveredTo   String?
   deliveredAt   DateTime?
+  disposedAt    DateTime?
+  disposalNote  String?
 
+  createdById String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
+  @@unique([siteId, number])
   @@index([siteId, status])
 }
 
@@ -1133,14 +1184,77 @@ model VisitorLog {
   id         String   @id @default(uuid())
   siteId     String
   visitorName String
+  visitorPhone String?
+  /// KVKK: API yanıtlarında daima maskeli döner
   nationalId String?
+  /// Boşluksuz, büyük harf (`normalizePlate`)
   plate      String?
   unitId     String?
+  /// Ziyaret edilen kişi
+  hostPersonId String?
+  purpose    String?
   enteredAt  DateTime @default(now())
   exitedAt   DateTime?
   note       String?
+  createdById String?
+  exitedById  String?
+
+  site       Site    @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  unit       Unit?   @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  hostPerson Person? @relation(fields: [hostPersonId], references: [id], onDelete: SetNull)
+
+  @@index([siteId, enteredAt])
+  @@index([siteId, exitedAt])
+}
+
+// ---------------------------------------------------------------------------
+// ÖDEME SKORU
+// ---------------------------------------------------------------------------
+
+/// Kişinin günlük ödeme skoru anlık görüntüsü (son 6 aylık pencere).
+/// Hesap `@sy/shared/payment-score` içindedir; burada yalnızca sonuç saklanır.
+model PaymentScore {
+  id        String   @id @default(uuid())
+  siteId    String
+  personId  String
+  scoreDate DateTime @db.Date
+
+  /// 0–5, bir ondalık
+  score          Decimal @db.Decimal(3, 1)
+  /// Vadesi gelmiş borcun ödenen oranı (0–1)
+  collectionRate Decimal @db.Decimal(5, 4)
+  /// Tutar ağırlıklı ortalama: pozitif = vadeden önce (peşin) ödeme günü
+  avgDaysEarly   Decimal @db.Decimal(7, 1)
+  /// Penceredeki vadesi gelmiş borç ve tahsil edilen gecikme tazminatı
+  dueAmount         Decimal @db.Decimal(18, 4)
+  lateFeeCollected  Decimal @db.Decimal(18, 4)
+  /// Kanal bazında tahsilat tutarı (kuruş): { BANK_TRANSFER, CARD, CASH, OTHER }
+  channels  Json
+  createdAt DateTime @default(now())
+
+  site   Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, personId, scoreDate])
+  @@index([siteId, scoreDate])
+}
+
+/// Sitenin günlük ortalaması — trend grafiği ve siteler arası (anonim) kıyas
+model SitePaymentScore {
+  id        String   @id @default(uuid())
+  siteId    String
+  scoreDate DateTime @db.Date
+
+  averageScore Decimal @db.Decimal(3, 1)
+  scoredCount  Int
+  /// 4 ve üzeri / 2–4 / 2 altı
+  highCount    Int
+  midCount     Int
+  lowCount     Int
+  channels     Json
+  createdAt    DateTime @default(now())
 
   site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
-  @@index([siteId, enteredAt])
+  @@unique([siteId, scoreDate])
 }

@@ -124,7 +124,7 @@ export default function FinancePage() {
             <ErrorBox error={error} />
           </div>
         ) : !data || data.items.length === 0 ? (
-          <EmptyState message="Cari bulunamadı." icon="search_off" />
+          <EmptyState message="Cari bulunamadı." icon="search" />
         ) : (
           <>
             <Table

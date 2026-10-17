@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, type DocumentType } from '@sy/db';
+import { Prisma, type DocumentType, type PaymentChannel } from '@sy/db';
 import { fromMinor, toMinor, sum } from '@sy/shared';
 import { PRISMA, type ExtendedPrismaClient } from '../prisma/prisma.client';
 import { requireSiteId } from '../tenant/tenant.context';
@@ -43,6 +43,8 @@ export interface CreateDocumentInput {
   duesRunId?: string | null;
   meterDistributionId?: string | null;
   ticketId?: string | null;
+  /** Yalnızca tahsilatta: ödeme skorunun kanal dağılımı için */
+  paymentChannel?: PaymentChannel | null;
   number?: string;
   entries: LedgerEntryInput[];
 }
@@ -154,6 +156,7 @@ export class LedgerService {
         duesRunId: input.duesRunId ?? null,
         meterDistributionId: input.meterDistributionId ?? null,
         ticketId: input.ticketId ?? null,
+        paymentChannel: input.paymentChannel ?? null,
         totalAmount: decimal(Math.max(debit, credit)),
         entries: {
           create: input.entries.map((entry) => ({

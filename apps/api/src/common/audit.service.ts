@@ -13,7 +13,7 @@ export class AuditService {
   constructor(@Inject(PRISMA) private readonly db: ExtendedPrismaClient) {}
 
   async record(params: {
-    action: 'CREATE' | 'UPDATE' | 'DELETE' | 'POST' | 'CANCEL' | 'LOGIN' | 'IMPORT';
+    action: 'CREATE' | 'UPDATE' | 'DELETE' | 'POST' | 'CANCEL' | 'LOGIN' | 'IMPORT' | 'EXPORT';
     entityType: string;
     entityId?: string;
     before?: unknown;

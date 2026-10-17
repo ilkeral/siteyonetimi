@@ -10,7 +10,7 @@ import { PRISMA, createPrismaClient, type ExtendedPrismaClient } from './prisma.
       provide: PRISMA,
       inject: [ConfigService],
       useFactory: (config: ConfigService) =>
-        createPrismaClient(config.get<string>('DATABASE_URL')),
+        createPrismaClient(config.get<string>('DATABASE_URL'), { rls: config.get<string>('DB_RLS') === 'on' }),
     },
   ],
   exports: [PRISMA],

@@ -20,6 +20,8 @@ export interface AuthUser {
   isSuperAdmin: boolean;
   siteId: string | null;
   role: Role | null;
+  /** Sakin (RESIDENT) üyeliğinin bağlı olduğu kişi kaydı */
+  personId: string | null;
 }
 
 /** `@CurrentUser() user: AuthUser` */

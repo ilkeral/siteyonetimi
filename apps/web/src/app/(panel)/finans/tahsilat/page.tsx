@@ -175,7 +175,7 @@ export default function CollectionPage() {
         <div className="col-lg-6">
           <Card title="Carinin Açık Borçları">
             {!accountId ? (
-              <EmptyState message="Önce bir cari seçin." icon="person_search" />
+              <EmptyState message="Önce bir cari seçin." icon="person_outline" />
             ) : !openItems || openItems.items.length === 0 ? (
               <>
                 <EmptyState message="Kapanmamış borç yok." icon="done_all" />

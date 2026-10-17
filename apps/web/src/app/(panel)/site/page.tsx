@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { useMe } from '@/lib/me';
 import { balanceClass, money } from '@/lib/format';
 import {
   Card,
@@ -39,6 +40,7 @@ export default function PeoplePage() {
   const [search, setSearch] = useState('');
   const [letter, setLetter] = useState<string | undefined>();
   const [onlyDebtors, setOnlyDebtors] = useState(false);
+  const { can } = useMe();
 
   const params = new URLSearchParams({ page: String(page), pageSize: '25' });
   if (search) params.set('search', search);
@@ -56,12 +58,21 @@ export default function PeoplePage() {
         title="Kişiler"
         subtitle="Kat malikleri, kiracılar ve bakiyeleri"
         actions={
-          <button type="button" className="btn btn-primary">
-            <i className="material-icons mr-1" style={{ fontSize: 16 }}>
-              person_add
-            </i>
-            Yeni Kişi
-          </button>
+          can('SITE_ADMIN', 'ACCOUNTANT') && (
+            <>
+              {can('SITE_ADMIN') && (
+                <Link href="/site/ice-aktar" className="btn btn-outline-secondary">
+                  Toplu Aktarım
+                </Link>
+              )}
+              <Link href="/site/yeni" className="btn btn-primary">
+                <i className="material-icons mr-1" style={{ fontSize: 16 }}>
+                  person_add
+                </i>
+                Yeni Kişi
+              </Link>
+            </>
+          )
         }
       />
 

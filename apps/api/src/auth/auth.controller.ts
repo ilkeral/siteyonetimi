@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, Post, Req } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { loginSchema, refreshSchema, type LoginInput } from '@sy/shared';
+import { changePasswordSchema, loginSchema, refreshSchema, type LoginInput } from '@sy/shared';
 import { AuthService } from './auth.service';
 import { CurrentUser, NoSite, Public, type AuthUser } from '../common/decorators';
 import { ZodBody } from '../common/zod-validation.pipe';
@@ -39,6 +39,18 @@ export class AuthController {
   @ApiOperation({ summary: 'Oturumu kapat (refresh token iptal edilir)' })
   async logout(@Body(new ZodBody(refreshSchema)) dto: { refreshToken: string }): Promise<void> {
     await this.auth.logout(dto.refreshToken);
+  }
+
+  @NoSite()
+  @Post('change-password')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Parola değiştir (diğer oturumlar kapanır, yeni token döner)' })
+  changePassword(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodBody(changePasswordSchema)) dto: { currentPassword: string; newPassword: string },
+    @Req() req: Request,
+  ) {
+    return this.auth.changePassword(user.id, dto, { ip: req.ip, userAgent: req.header('user-agent') });
   }
 
   @NoSite()

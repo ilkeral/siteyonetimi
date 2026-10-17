@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import type { PersonInput } from '@sy/shared';
+import { formatPlate, type PersonInput } from '@sy/shared';
 import { PRISMA, type ExtendedPrismaClient } from '../prisma/prisma.client';
 import { requireSiteId } from '../tenant/tenant.context';
 import { LedgerService } from '../finance/ledger.service';
@@ -108,7 +108,7 @@ export class PeopleService {
           take: 20,
         },
         messages: {
-          select: { id: true, channel: true, subject: true, status: true, sentAt: true, createdAt: true },
+          select: { id: true, channel: true, subject: true, body: true, recipient: true, status: true, sentAt: true, createdAt: true },
           orderBy: { createdAt: 'desc' },
           take: 50,
         },
@@ -282,11 +282,14 @@ export class PeopleService {
 
   async addVehicle(personId: string, input: Record<string, string | undefined>) {
     const siteId = requireSiteId();
+    const person = await this.db.person.count({ where: { id: personId } });
+    if (!person) throw new NotFoundException('Kişi bulunamadı');
     return this.db.vehicle.create({
       data: {
         siteId,
         personId,
-        plate: (input.plate ?? '').toUpperCase().replace(/\s+/g, ' ').trim(),
+        // Güvenlik modülündeki eşleştirmeyle aynı biçim: "34 ABC 123"
+        plate: formatPlate(input.plate),
         brand: input.brand,
         model: input.model,
         color: input.color,

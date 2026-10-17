@@ -82,10 +82,13 @@ async function main(): Promise<void> {
 
   // A sitesine, B'nin asla görmemesi gereken bir blok ve kişi
   const blockA = await prisma.block.create({ data: { siteId: siteA.id, name: 'GİZLİ BLOK' } });
-  await prisma.person.create({
-    data: { siteId: siteA.id, firstName: 'Gizli', lastName: 'Kişi' },
+  const personA = await prisma.person.create({
+    data: { siteId: siteA.id, firstName: 'Gizli', lastName: 'Kişi', phone: '5321112233' },
   });
-  await prisma.block.create({ data: { siteId: siteB.id, name: 'B BLOK' } });
+  const unitA = await prisma.unit.create({ data: { siteId: siteA.id, blockId: blockA.id, doorNumber: '1' } });
+  const blockB = await prisma.block.create({ data: { siteId: siteB.id, name: 'B BLOK' } });
+  const unitB = await prisma.unit.create({ data: { siteId: siteB.id, blockId: blockB.id, doorNumber: '1' } });
+  const personB = await prisma.person.create({ data: { siteId: siteB.id, firstName: 'B', lastName: 'Sakini' } });
 
   // --------------------------------------------------------------- testler
   const loginA = await api('/auth/login', {
@@ -146,6 +149,69 @@ async function main(): Promise<void> {
 
   const badToken = await api('/sites/current', { token: 'sahte.token.degeri', siteId: siteA.id });
   check('Sahte token reddediliyor (401)', badToken.status === 401);
+
+  // ------------------------------------------- ilişki kimlikleriyle sızma
+  // Prisma eklentisi ana sorguyu daraltır ama gövdedeki yabancı anahtarları
+  // denetlemez; B kendi kaydını A'nın kaydına bağlayıp include ile okuyabilirdi.
+  const asB = { token: tokenB, siteId: siteB.id };
+
+  const foreignBlockUnit = await api('/units', { ...asB, method: 'POST', body: { blockId: blockA.id, doorNumber: '99' } });
+  check("B, A'nın bloğuna daire açamıyor", foreignBlockUnit.status === 400, `status ${foreignBlockUnit.status}`);
+
+  const moveUnit = await api(`/units/${unitB.id}`, { ...asB, method: 'PUT', body: { blockId: blockA.id, doorNumber: '1' } });
+  check("B, dairesini A'nın bloğuna taşıyamıyor", moveUnit.status === 400, `status ${moveUnit.status}`);
+
+  const foreignPerson = await api('/people/occupancies', {
+    ...asB,
+    method: 'POST',
+    body: { unitId: unitB.id, personId: personA.id, role: 'OWNER', startDate: '2024-01-01' },
+  });
+  check("B, A'nın kişisini kendi dairesine bağlayamıyor", foreignPerson.status === 400, `status ${foreignPerson.status}`);
+
+  const foreignUnit = await api('/people/occupancies', {
+    ...asB,
+    method: 'POST',
+    body: { unitId: unitA.id, personId: personB.id, role: 'OWNER', startDate: '2024-01-01' },
+  });
+  check("B, kendi kişisini A'nın dairesine bağlayamıyor", foreignUnit.status === 400, `status ${foreignUnit.status}`);
+
+  const foreignVehicle = await api(`/people/${personA.id}/vehicles`, { ...asB, method: 'POST', body: { plate: '34 ABC 123' } });
+  check("B, A'nın kişisine araç ekleyemiyor", foreignVehicle.status === 404, `status ${foreignVehicle.status}`);
+
+  const unitsB = await api('/units?pageSize=200', asB);
+  check("B'nin daire listesinde A'nın kişisi görünmüyor",
+    !JSON.stringify(unitsB.data).includes('Gizli') && !JSON.stringify(unitsB.data).includes('5321112233'),
+  );
+  const leaked = await prisma.unitOccupancy.count({ where: { siteId: siteB.id, personId: personA.id } });
+  check("Veritabanında siteler arası daire ilişkisi oluşmadı", leaked === 0);
+
+  // ------------------------------------------------ parametre gövdesiyle sızma
+  // Ayar uç noktası gövdeyi doğrudan veritabanına veriyordu: siteId taşıma ve
+  // iç içe yazma (site adı, üyelik) mümkündü.
+  const nested = await api('/sites/settings', {
+    ...asB,
+    method: 'PUT',
+    body: { site: { update: { name: 'ELE GEÇİRİLDİ' } } },
+  });
+  const siteBAfter = await prisma.site.findUnique({ where: { id: siteB.id } });
+  check('Parametre gövdesiyle site kaydı değiştirilemiyor', nested.status === 400 && siteBAfter?.name === 'TEST SITE B', `status ${nested.status}`);
+
+  const escalate = await api('/sites/settings', {
+    ...asB,
+    method: 'PUT',
+    body: { site: { update: { memberships: { create: { userId: userA.id, role: 'SITE_ADMIN' } } } } },
+  });
+  const membershipCount = await prisma.siteMembership.count({ where: { userId: userA.id, siteId: siteB.id } });
+  check('Parametre gövdesiyle üyelik oluşturulamıyor', escalate.status === 400 && membershipCount === 0, `status ${escalate.status}`);
+
+  const settingsA = await prisma.siteSettings.findUnique({ where: { siteId: siteA.id } });
+  const moved = await api('/sites/settings', { ...asB, method: 'PUT', body: { siteId: siteA.id, lateFeeGraceDays: 99 } });
+  const settingsAAfter = await prisma.siteSettings.findUnique({ where: { siteId: siteA.id } });
+  check(
+    'Parametre gövdesindeki siteId yok sayılıyor / reddediliyor',
+    moved.status === 400 && settingsAAfter?.lateFeeGraceDays === settingsA?.lateFeeGraceDays,
+    `status ${moved.status}`,
+  );
 
   // ------------------------------------------------------------- temizlik
   await prisma.site.deleteMany({ where: { id: { in: [siteA.id, siteB.id] } } });

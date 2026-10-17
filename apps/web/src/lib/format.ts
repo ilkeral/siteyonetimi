@@ -33,9 +33,20 @@ export function dateTime(value: string | Date | null | undefined): string {
   return DATETIME.format(new Date(value));
 }
 
-/** Bugünün tarihi, <input type="date"> için */
+/**
+ * Bugünün tarihi (yerel saat), <input type="date"> için.
+ * `toISOString()` UTC verir: Türkiye'de 00:00–03:00 arası "dün" çıkardı.
+ */
 export function todayInput(): string {
-  return new Date().toISOString().slice(0, 10);
+  return dateTimeInput(new Date()).slice(0, 10);
+}
+
+/** Yerel saatle <input type="datetime-local"> değeri: "2026-10-16T14:05" */
+export function dateTimeInput(value: string | Date | null | undefined): string {
+  if (!value) return '';
+  const d = new Date(value);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 /** Bakiye rengini belirler: borçlu kırmızı, alacaklı (avans) yeşil */
@@ -61,4 +72,19 @@ export function chartTextColor(): string {
   return document.documentElement.getAttribute('data-theme') === 'dark'
     ? 'rgba(227, 236, 242, 0.7)'
     : 'rgba(55, 77, 103, 0.7)';
+}
+
+const QUANTITY = new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 3 });
+
+/** Sayaç değeri / tüketim: 1.234,5 */
+export function quantity(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '—';
+  return QUANTITY.format(value);
+}
+
+const PLAIN_MONEY = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** Kuruşu düzenlenebilir tutar metnine çevirir: 123456 → "1.234,56" (para birimi simgesi yok) */
+export function moneyInput(minor: number | null | undefined): string {
+  return minor ? PLAIN_MONEY.format(minor / 100) : '';
 }

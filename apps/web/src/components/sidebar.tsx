@@ -23,11 +23,12 @@ export const MENU: MenuItem[] = [
   {
     href: '/site',
     label: 'Site',
-    icon: 'apartment',
+    icon: 'location_city',
     ready: true,
     children: [
       { href: '/site', label: 'Kişiler' },
       { href: '/site/daireler', label: 'Daireler' },
+      { href: '/site/ice-aktar', label: 'Toplu Aktarım' },
     ],
   },
   {
@@ -43,12 +44,70 @@ export const MENU: MenuItem[] = [
       { href: '/finans/banka', label: 'Banka Hareketleri' },
     ],
   },
-  { href: '/sayac', label: 'Sayaç İşlemleri', icon: 'speed', ready: false },
-  { href: '/raporlar', label: 'Raporlar', icon: 'assessment', ready: false },
-  { href: '/guvenlik', label: 'Güvenlik', icon: 'security', ready: false },
-  { href: '/teknik', label: 'Teknik', icon: 'build', ready: false },
-  { href: '/tanimlar', label: 'Tanımlar', icon: 'settings', ready: false },
-  { href: '/iletisim', label: 'İletişim', icon: 'mail_outline', ready: false },
+  {
+    href: '/sayac',
+    label: 'Sayaç İşlemleri',
+    icon: 'av_timer',
+    ready: true,
+    children: [
+      { href: '/sayac', label: 'Dağıtımlar' },
+      { href: '/sayac/yeni', label: 'Yeni Dağıtım' },
+    ],
+  },
+  {
+    href: '/raporlar',
+    label: 'Raporlar',
+    icon: 'assessment',
+    ready: true,
+    children: [
+      { href: '/raporlar/ekstre', label: 'Cari Ekstre' },
+      { href: '/raporlar/yaslandirma', label: 'Borç Yaşlandırma' },
+      { href: '/raporlar/gelir-gider', label: 'Gelir-Gider' },
+      { href: '/raporlar/odeme-skoru', label: 'Ödeme Skoru' },
+    ],
+  },
+  {
+    href: '/teknik',
+    label: 'Teknik',
+    icon: 'build',
+    ready: true,
+    children: [
+      { href: '/teknik', label: 'İş Takibi' },
+      { href: '/teknik/liste', label: 'Talep Listesi' },
+      { href: '/teknik/yeni', label: 'Yeni Talep' },
+    ],
+  },
+  {
+    href: '/iletisim',
+    label: 'İletişim',
+    icon: 'mail_outline',
+    ready: true,
+    children: [
+      { href: '/iletisim', label: 'Bildirimler' },
+      { href: '/iletisim/yeni', label: 'Yeni Bildirim' },
+      { href: '/iletisim/sablonlar', label: 'Şablonlar' },
+      { href: '/iletisim/duyurular', label: 'Duyurular' },
+    ],
+  },
+  {
+    href: '/guvenlik',
+    label: 'Güvenlik',
+    icon: 'security',
+    ready: true,
+    children: [
+      { href: '/guvenlik', label: 'Özet' },
+      { href: '/guvenlik/ziyaretci', label: 'Ziyaretçiler' },
+      { href: '/guvenlik/olaylar', label: 'Olay Kayıtları' },
+      { href: '/guvenlik/kayip-esya', label: 'Kayıp Eşya' },
+    ],
+  },
+  {
+    href: '/tanimlar',
+    label: 'Tanımlar',
+    icon: 'settings',
+    ready: true,
+    children: [{ href: '/tanimlar/parametreler', label: 'Parametreler' }],
+  },
   { href: '/ada', label: 'ADA', icon: 'map', ready: false },
   { href: '/web-sitesi', label: 'Web Sitesi', icon: 'public', ready: false },
   { href: '/sigorta', label: 'Sigorta', icon: 'verified_user', ready: false },
@@ -77,7 +136,7 @@ export function Sidebar({ mini }: { mini: boolean }) {
       {!mini && <div className="sidebar-heading">Diğer Modüller</div>}
       <MenuList items={MENU.filter((item) => !item.ready)} mini={mini} pathname={pathname} />
 
-      <div className="sy-sidebar-footer">Sürüm 0.1.0 — Faz 1</div>
+      <div className="sy-sidebar-footer">Sürüm 0.7.0 — Faz 7</div>
     </div>
   );
 }

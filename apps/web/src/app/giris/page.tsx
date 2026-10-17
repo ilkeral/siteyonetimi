@@ -2,13 +2,15 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@sy/shared';
-import { api, session, type SiteSummary } from '@/lib/api';
+import { api, homePath, session, type SiteSummary } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [serverError, setServerError] = useState<string | null>(null);
   const [sites, setSites] = useState<SiteSummary[] | null>(null);
 
@@ -23,19 +25,21 @@ export default function LoginPage() {
     try {
       const data = await api.login(values.email, values.password);
       session.setTokens(data.accessToken, data.refreshToken);
+      // Önceki oturumun önbelleği (rol, site, liste verileri) yeni kullanıcıya taşınmasın
+      queryClient.clear();
 
       if (data.sites.length === 0) {
         setServerError('Hesabınıza tanımlı bir site bulunmuyor. Yöneticinizle görüşün.');
         return;
       }
-      const previous = session.siteId;
-      if (previous && data.sites.some((site) => site.id === previous)) {
-        router.replace('/ozet');
+      const previous = data.sites.find((site) => site.id === session.siteId);
+      if (previous) {
+        router.replace(homePath(previous.role));
         return;
       }
       if (data.sites.length === 1) {
         session.setSiteId(data.sites[0].id);
-        router.replace('/ozet');
+        router.replace(homePath(data.sites[0].role));
         return;
       }
       setSites(data.sites);
@@ -44,9 +48,9 @@ export default function LoginPage() {
     }
   }
 
-  function chooseSite(siteId: string) {
-    session.setSiteId(siteId);
-    router.replace('/ozet');
+  function chooseSite(site: SiteSummary) {
+    session.setSiteId(site.id);
+    router.replace(homePath(site.role));
   }
 
   return (
@@ -77,7 +81,7 @@ export default function LoginPage() {
                 <button
                   key={site.id}
                   type="button"
-                  onClick={() => chooseSite(site.id)}
+                  onClick={() => chooseSite(site)}
                   className="list-group-item list-group-item-action text-left"
                 >
                   <strong className="d-block">{site.name}</strong>

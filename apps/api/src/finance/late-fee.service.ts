@@ -63,17 +63,39 @@ export class LateFeeService {
     });
     const appliedParents = new Set(applied.map((d) => d.parentId).filter(Boolean) as string[]);
 
+    // Sayaç paylaşım evrakları için tazminat dağıtımın kendi ayarına bağlıdır:
+    // "Gecikme Tazminatı Uygula" kapalıysa işlenmez, başlama tarihi verildiyse
+    // gecikme vadeden değil o tarihten sayılır.
+    const meterRules = new Map(
+      (
+        await this.db.document.findMany({
+          where: { type: 'METER_DISTRIBUTION', status: 'POSTED' },
+          select: {
+            id: true,
+            meterDistribution: { select: { applyLateFee: true, lateFeeStartDate: true } },
+          },
+        })
+      ).map((d) => [d.id, d.meterDistribution]),
+    );
+
     for (const account of accounts) {
       const openItems = await this.ledger.openItems(account.id);
 
       for (const item of openItems) {
         // Tazminatın kendisine tazminat işlenmez
         if (item.type === 'LATE_FEE' || !item.dueDate) continue;
-        if (item.dueDate >= asOf) continue;
+
+        let dueDate = item.dueDate;
+        if (item.type === 'METER_DISTRIBUTION') {
+          const rule = meterRules.get(item.documentId);
+          if (!rule?.applyLateFee) continue;
+          if (rule.lateFeeStartDate) dueDate = rule.lateFeeStartDate;
+        }
+        if (dueDate >= asOf) continue;
 
         const result = computeLateFee({
           principalMinor: item.remainingMinor,
-          dueDate: item.dueDate,
+          dueDate,
           asOf,
           method: settings.lateFeeMethod as LateFeeMethod,
           rate: Number(settings.lateFeeRate),

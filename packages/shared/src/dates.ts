@@ -73,6 +73,14 @@ export function formatPeriodTR(period: Period): string {
   return `${d.getFullYear()} ${TR_MONTHS[d.getMonth()]}`;
 }
 
+const TR_MONTHS_SHORT = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+
+/** '2026-08' → 'Ağu 2026' — dar tablo sütun başlıkları için */
+export function formatPeriodShortTR(period: Period): string {
+  const d = periodToDate(period);
+  return `${TR_MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 /**
  * Bir dönemin son ödeme tarihi: o ayın `dayOfMonth`'ı.
  * Ay o günü içermiyorsa (ör. 31 Şubat) ayın son günü kullanılır.

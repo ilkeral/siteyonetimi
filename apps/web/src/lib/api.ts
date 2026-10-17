@@ -61,7 +61,7 @@ export const session = {
 
 async function request<T>(
   path: string,
-  options: RequestInit & { skipAuth?: boolean; retry?: boolean } = {},
+  options: RequestInit & { skipAuth?: boolean; retry?: boolean; blob?: boolean } = {},
 ): Promise<T> {
   const headers = new Headers(options.headers);
   headers.set('Content-Type', 'application/json');
@@ -100,7 +100,14 @@ async function request<T>(
   }
 
   if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
+  if (options.blob) {
+    const disposition = response.headers.get('content-disposition') ?? '';
+    const filename = /filename="([^"]+)"/.exec(disposition)?.[1] ?? 'rapor.pdf';
+    return { blob: await response.blob(), filename } as T;
+  }
+  // Uç nokta null döndürünce gövde boş gelir ("kayıt yok" yanıtı)
+  const text = await response.text();
+  return (text ? JSON.parse(text) : null) as T;
 }
 
 let refreshPromise: Promise<boolean> | null = null;
@@ -139,6 +146,18 @@ export const api = {
   patch: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+  /** Kimlik doğrulamalı dosya indirme (PDF raporlar) — tarayıcıda "kaydet" başlatır */
+  download: async (path: string) => {
+    const { blob, filename } = await request<{ blob: Blob; filename: string }>(path, { blob: true });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
   login: (email: string, password: string) =>
     request<LoginResponse>('/auth/login', {
       method: 'POST',
@@ -146,6 +165,13 @@ export const api = {
       skipAuth: true,
     }),
 };
+
+/** Rolün giriş sayfası: sakin portala, güvenlik görevlisi güvenlik özetine, diğer personel panele */
+export function homePath(role: string | null | undefined): string {
+  if (role === 'RESIDENT') return '/portal';
+  if (role === 'SECURITY') return '/guvenlik';
+  return '/ozet';
+}
 
 export interface SiteSummary {
   id: string;

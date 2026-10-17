@@ -282,7 +282,7 @@ export default function DuesPage() {
                     }}
                     title="Kaldır"
                   >
-                    <i className="material-icons">delete_outline</i>
+                    <i className="material-icons">delete</i>
                   </button>
                 </div>
               </div>

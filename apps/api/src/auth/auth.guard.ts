@@ -71,6 +71,7 @@ export class AuthGuard implements CanActivate {
 
     const siteIdHeader = request.header('x-site-id') ?? null;
     let role: Role | null = null;
+    let personId: string | null = null;
 
     if (!noSite) {
       if (!siteIdHeader) {
@@ -89,7 +90,7 @@ export class AuthGuard implements CanActivate {
           }),
           this.db.siteMembership.findUnique({
             where: { userId_siteId: { userId: payload.sub, siteId: siteIdHeader } },
-            select: { role: true, isActive: true },
+            select: { role: true, isActive: true, personId: true },
           }),
         ]),
       );
@@ -104,6 +105,7 @@ export class AuthGuard implements CanActivate {
           throw new ForbiddenException('Bu siteye erişim yetkiniz yok');
         }
         role = membership.role;
+        personId = membership.personId;
       } else {
         role = membership?.role ?? 'SUPER_ADMIN';
       }
@@ -117,6 +119,14 @@ export class AuthGuard implements CanActivate {
       throw new ForbiddenException('Bu işlem için yetkiniz yok');
     }
 
+    // Sakin varsayılan olarak REDDEDİLİR: rol listesi olmayan uç noktalar
+    // (cari listesi, kişi listesi, pano…) personel içindir. Sakin yalnızca
+    // @Roles('RESIDENT') taşıyan portal uç noktalarına erişir.
+    // (Mesajda "site" geçmesin: web istemcisi 403 + "site"de seçimi siler.)
+    if (role === 'RESIDENT' && !payload.sa && !noSite && !required?.includes('RESIDENT')) {
+      throw new ForbiddenException('Bu işlem sakin hesabına kapalıdır');
+    }
+
     request.user = {
       id: payload.sub,
       email: payload.email,
@@ -124,6 +134,7 @@ export class AuthGuard implements CanActivate {
       isSuperAdmin: payload.sa,
       siteId: noSite ? null : siteIdHeader,
       role,
+      personId,
     };
 
     return true;

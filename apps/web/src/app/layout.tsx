@@ -7,7 +7,7 @@ import { Providers } from './providers';
  * dosya adlandırması devreye girmez. custom.css'te yapılan bir değişikliğin
  * tarayıcıda kesin görünmesi için bu sayıyı artırın.
  */
-const THEME_VERSION = '3';
+const THEME_VERSION = '13';
 
 export const metadata: Metadata = {
   title: 'Site Yönetim Paneli',

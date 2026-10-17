@@ -1,4 +1,4 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as argon2 from 'argon2';
@@ -105,6 +105,37 @@ export class AuthService {
         data: { revokedAt: new Date() },
       }),
     );
+  }
+
+  /**
+   * Parola değiştirme. Diğer cihazlardaki oturumlar kapatılır (tüm refresh
+   * token'lar iptal); bu cihaz için yeni token çifti döner.
+   */
+  async changePassword(
+    userId: string,
+    input: { currentPassword: string; newPassword: string },
+    meta: { ip?: string; userAgent?: string },
+  ) {
+    const user = await runWithoutTenant(() => this.db.user.findUnique({ where: { id: userId } }));
+    if (!user || !user.isActive) throw new UnauthorizedException('Oturum geçersiz');
+
+    const valid = await argon2.verify(user.passwordHash, input.currentPassword).catch(() => false);
+    if (!valid) throw new BadRequestException('Mevcut parola hatalı');
+    if (input.currentPassword === input.newPassword) {
+      throw new BadRequestException('Yeni parola eskisiyle aynı olamaz');
+    }
+
+    const passwordHash = await argon2.hash(input.newPassword);
+    await runWithoutTenant(() =>
+      this.db.$transaction([
+        this.db.user.update({ where: { id: userId }, data: { passwordHash } }),
+        this.db.refreshToken.updateMany({
+          where: { userId, revokedAt: null },
+          data: { revokedAt: new Date() },
+        }),
+      ]),
+    );
+    return this.issueTokens(user.id, user.email, user.fullName, user.isSuperAdmin, meta);
   }
 
   async listSites(userId: string, isSuperAdmin: boolean): Promise<SiteSummary[]> {

@@ -118,7 +118,7 @@ export default function StatementPage() {
           </div>
 
           {data.lines.length === 0 ? (
-            <EmptyState message="Bu tarih aralığında hareket yok." icon="receipt_long" />
+            <EmptyState message="Bu tarih aralığında hareket yok." icon="receipt" />
           ) : (
             <Table
               head={
