@@ -167,7 +167,7 @@ describe('smsInfo', () => {
   });
 
   it('Türkçe ş/ğ/ı UCS-2ye düşürür (70 / 67)', () => {
-    const r = smsInfo('Sayın sakin, aidat borcunuz');
+    const r = smsInfo('Sayın ikamet eden, aidat borcunuz');
     expect(r.encoding).toBe('UCS2');
     expect(r.nonGsmChars).toEqual(['ı']);
     expect(smsInfo('ş'.repeat(70)).segments).toBe(1);

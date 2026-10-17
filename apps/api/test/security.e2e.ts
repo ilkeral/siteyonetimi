@@ -10,6 +10,7 @@
  *   pnpm --filter @sy/api run test:security
  */
 import { PrismaClient } from '@sy/db';
+import { cleanupTestOrganizations, testOrganization } from './helpers';
 import * as argon2 from 'argon2';
 
 const BASE = process.env.API_BASE ?? 'http://localhost:3101';
@@ -67,13 +68,14 @@ async function login(email: string): Promise<string> {
 
 async function cleanup() {
   await prisma.site.deleteMany({ where: { name: { in: [SITE_NAME, OTHER_SITE_NAME] } } });
+  await cleanupTestOrganizations(prisma);
   await prisma.user.deleteMany({ where: { email: { in: Object.values(EMAILS) } } });
 }
 
 async function setup() {
   await cleanup();
-  const site = await prisma.site.create({ data: { name: SITE_NAME, settings: { create: {} } } });
-  const other = await prisma.site.create({ data: { name: OTHER_SITE_NAME, settings: { create: {} } } });
+  const site = await prisma.site.create({ data: { name: SITE_NAME, organization: testOrganization(SITE_NAME), settings: { create: {} } } });
+  const other = await prisma.site.create({ data: { name: OTHER_SITE_NAME, organization: testOrganization(OTHER_SITE_NAME), settings: { create: {} } } });
   siteId = site.id;
   otherSiteId = other.id;
 
@@ -91,8 +93,8 @@ async function setup() {
   await prisma.unitOccupancy.create({
     data: { siteId, unitId: unit.id, personId: person.id, role: 'OWNER', startDate: new Date('2020-01-01') },
   });
-  // Sitede kayıtlı iki araç: biri sakinin, biri yasaklı (serbest biçimde yazılmış plakalar)
-  await prisma.vehicle.create({ data: { siteId, personId: person.id, plate: '34 abc 123', status: 'sakin' } });
+  // Sitede kayıtlı iki araç: biri ikamet edenin, biri yasaklı (serbest biçimde yazılmış plakalar)
+  await prisma.vehicle.create({ data: { siteId, personId: person.id, plate: '34 abc 123', status: 'ikamet eden' } });
   await prisma.vehicle.create({ data: { siteId, personId: person.id, plate: '06-ZZ-999', status: 'Yasaklı' } });
   ids.unit = unit.id;
   ids.person = person.id;
@@ -136,7 +138,7 @@ async function main(): Promise<void> {
 
   // ------------------------------------------------------------ 1) yetki
   check('Muhasebe güvenlik modülüne erişemiyor (403)', (await api('/security/summary', { as: 'accountant' })).status === 403);
-  check('Sakin güvenlik modülüne erişemiyor (403)', (await api('/security/visitors', { as: 'resident' })).status === 403);
+  check('İkamet eden güvenlik modülüne erişemiyor (403)', (await api('/security/visitors', { as: 'resident' })).status === 403);
   const meta = await api<any>('/security/meta', { as: 'guard' });
   check(
     'Görevli listesi yalnızca güvenlik + yönetici',

@@ -4,9 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Proje
 
-Çok siteli (multi-tenant) apartman/site yönetim platformu. Apsiyon benzeri bir
+Çok siteli (multi-tenant) apartman/site yönetim platformu — **birden çok
+müşteriye (yönetim şirketi / site yönetimi) satılan SaaS**. Apsiyon benzeri bir
 ürünün sıfırdan yazımı: aidat tahakkuku, cari hesap defteri, tahsilat, banka
-eşleştirme, sayaç paylaşımı, iş takibi ve çok kanallı bildirim.
+eşleştirme, sayaç paylaşımı, iş takibi ve çok kanallı bildirim; müşteri, paket
+ve abonelik yönetimi için ayrı bir platform paneli.
 
 **Dil:** Kullanıcıya görünen tüm metinler, kod yorumları ve commit mesajları
 Türkçedir. Kod tanımlayıcıları (değişken, fonksiyon, tip) İngilizcedir.
@@ -39,18 +41,19 @@ APP_DB_PASSWORD=... pnpm db:app-role   # RLS için tablo sahibi olmayan uygulama
 
 ```bash
 pnpm test                                       # tüm birim testleri (vitest; api'de *.spec.ts)
-pnpm --filter @sy/shared run test               # hesap motorları — 173 test
+pnpm --filter @sy/shared run test               # hesap motorları — 182 test
 pnpm --filter @sy/shared exec vitest run src/__tests__/meter-calc.test.ts   # tek dosya
 pnpm --filter @sy/shared exec vitest run -t "ortak tüketimi"                # tek test (isimle)
 
 # Uçtan uca — ÇALIŞAN BİR API gerektirir (API_BASE, varsayılan http://localhost:3101)
+pnpm --filter @sy/api run test:platform        # 40 kontrol: paket→müşteri+ilk site→sınırlar→modül kilidi→destek erişimi→abonelik durumları
 pnpm --filter @sy/api run test:structure       # 32 kontrol: blok/daire kuralları, doğal sıralama, toplu kişi/daire aktarımı
 pnpm --filter @sy/api run test:isolation        # 22 kontrol: çok kiracılılık sızıntısı (ilişki kimlikleri, parametre gövdesi dahil)
 pnpm --filter @sy/api run test:finance          # 30 kontrol: tahakkuk→tahsilat→tazminat→banka→pano
 pnpm --filter @sy/api run test:tickets          # 39 kontrol: talep→pano→taşıma→masraf→fatura→yetki→izolasyon
 pnpm --filter @sy/api run test:meters           # 37 kontrol: taslak→okuma→önizleme→onay→geri alma→tazminat→izolasyon
 pnpm --filter @sy/api run test:notifications    # 35 kontrol: şablon→önizleme→kuyruk (hata/yeniden deneme)→zamanlama→izolasyon (Redis gerekir)
-pnpm --filter @sy/api run test:portal           # 46 kontrol: sakin varsayılan ret→sakinler arası izolasyon→talep→ödeme→erişim
+pnpm --filter @sy/api run test:portal           # 46 kontrol: ikamet eden varsayılan ret→ikamet edenler arası izolasyon→talep→ödeme→erişim
 pnpm --filter @sy/api run test:reports          # 48 kontrol: ekstre+KVKK maskesi→PDF/Excel→yaşlandırma→ödeme skoru→gelir-gider→izolasyon
 pnpm --filter @sy/api run test:rls              # 10 kontrol, API gerektirmez: kural kapsamı + uygulama rolüyle RLS (APP_DATABASE_URL)
 pnpm --filter @sy/api run test:security         # 55 kontrol: olay→kayıp eşya yaşam döngüsü→ziyaretçi (plaka, TC maskesi)→yetki→izolasyon
@@ -77,8 +80,10 @@ API_PORT=3101 CORS_ORIGIN=http://localhost:3100 node dist/main.js
 **Portlar 3100 (web) / 3101 (api)** — bilinçli seçim; bu makinede 3000/3001
 başka bir proje tarafından kullanılıyor.
 
-Demo giriş: `admin@site.local` / `Admin1234!` · sakin portalı: `sakin@site.local` / `Sakin1234!` ·
-güvenlik görevlisi: `guvenlik@site.local` / `Guvenlik1234!` (seed'den sonra)
+Demo giriş (seed'den sonra):
+- `admin@site.local` / `Admin1234!` — site yöneticisi ve müşteri ("Adakent Yönetim") sahibi (`/ozet`, `/firma`)
+- `platform@site.local` / `Platform1234!` — platform (süper) yöneticisi (`/platform`)
+- `sakin@site.local` / `Sakin1234!` — İkamet Eden Portalı · `guvenlik@site.local` / `Guvenlik1234!` — güvenlik görevlisi
 
 ## Mimari
 
@@ -129,12 +134,12 @@ Veri tek veritabanında, her tenant tablosunda `siteId` ile durur.
 > şemasıyla doğrulanır; `runWithoutTenant` içinde gövde yayılırsa (`...body`)
 > `siteId` taşıma ve iç içe yazma (`site: { update }`) mümkün olur.
 
-> **Sakin (RESIDENT) varsayılan olarak reddedilir.** `AuthGuard`, sakini
+> **İkamet eden (RESIDENT) varsayılan olarak reddedilir.** `AuthGuard`, ikamet edeni
 > yalnızca `@Roles('RESIDENT')` taşıyan uç noktalara geçirir. Rol listesi
 > olmayan bir panel uç noktası (ör. `GET /people`) yazmak güvenlidir —
-> personele açık, sakine kapalıdır. Portal servislerinde (`portal.service.ts`)
+> personele açık, ikamet edene kapalıdır. Portal servislerinde (`portal.service.ts`)
 > her sorgu ayrıca `requirePersonId()` ile oturumun kişisine daraltılır:
-> aynı sitedeki başka sakinin verisi de görünmemelidir.
+> aynı sitedeki başka ikamet edenin verisi de görünmemelidir.
 
 > **Yeni tenant modeli eklerken `packages/db/src/index.ts` içindeki
 > `TENANT_MODELS` listesine de ekleyin** ve bir migration ile RLS kuralını
@@ -198,7 +203,52 @@ sonra servisten çağırın.
 Aynı dosyalar Zod şemalarını da barındırır (`schemas.ts`): API doğrulaması ve
 frontend form doğrulaması **aynı şemayı** kullanır.
 
+### SaaS: müşteri, paket, abonelik
+
+Hiyerarşi: **Plan (paket) → Organization (müşteri) → Site → kişi/daire/finans**.
+Kurallar saf fonksiyon olarak `packages/shared/src/subscription.ts` içinde.
+
+- **Müşteri** paketin, aboneliğin ve sözleşmenin sahibi; birden çok sitesi
+  olabilir (yönetim şirketi). `OrganizationMember` (OWNER) sahibi bağlar; sahip
+  müşterinin her sitesine `SITE_ADMIN` olarak eklenir, `/firma`'dan paket sınırı
+  içinde site açar. **Her site bir müşteriye bağlıdır** (`Site.organizationId`
+  zorunlu, veritabanı kısıtı): faturalanmayan "müşterisiz site" yoktur. Site
+  yalnızca platform panelinden ya da müşteri sahibinin `/firma` sayfasından
+  (`SiteBootstrapService`) açılır. Uçtan uca testler siteyi kurarken
+  `test/helpers.ts` → `testOrganization()` ile paketsiz test müşterisi oluşturur.
+- **Paket**: `maxSites`, `maxUnits` (müşterinin TÜM sitelerindeki aktif daire),
+  `features` (PLAN_FEATURES: tickets, meters, notifications, portal, reports,
+  security). Kişi/daire, finans, aidat, cari ekstre ve yaşlandırma her pakette.
+  Paketsiz müşteri (planId null) = özel sözleşme, sınırsız.
+- **Uygulama**: `AuthGuard` site isteğinde müşterinin durumunu okur —
+  SUSPENDED/CANCELLED → 403; PAST_DUE, deneme bitti, `paidUntil` + 7 gün geçti →
+  okuma dışı istek **402** (salt okunur). `@Feature('x')` (sınıf/yöntem) pakette
+  yoksa 403. Sınır aşımı (`EntitlementsService`) **402** — 403 değil, çünkü web
+  istemcisi 403 + "site" mesajında site seçimini siler.
+- **Platform yöneticisi müşteri verisine kendiliğinden erişmez** (KVKK):
+  üyesi olmadığı siteye yalnızca `SupportAccess` (gerekçe ≥10 karakter, 15–480
+  dk) ile girer; erişim müşterinin sitesinin `AuditLog`'una da yazılır. Panelde
+  kırmızı "Destek oturumu" bandı görünür. `listSites` süper yöneticiye yalnızca
+  üyelik + geçerli destek erişimi olan siteleri döndürür.
+- `@PlatformOnly()` uç noktaları (`/platform/*`) site seçimi istemez, yalnızca
+  süper yönetici. Yeni site `SiteBootstrapService` ile **boş açılmaz**:
+  parametreler, kategoriler (finans "Aidat Geliri" / "Gecikme Tazminatı"
+  adlarını arar — `site-defaults.ts`), kasa+banka, departman, aidat kalemi,
+  şablonlar.
+- Eksik: gerçek ödeme/faturalama entegrasyonu (abonelik durumu ve `paidUntil`
+  platform yöneticisi tarafından elle güncellenir), müşteriye e-posta ile
+  davet/parola sıfırlama, kendi kendine kayıt (self-service signup), paket
+  yükseltme talebi akışı, müşteri bazında kullanım faturası.
+
 ### Frontend
+
+- **İki ayrı kök düzen** (Next.js route group'ları, URL'yi etkilemez):
+  `app/(app)/layout.tsx` — müşteri tarafı (panel, portal, giriş), Bizzark
+  teması; `app/(platform)/layout.tsx` — platform paneli, **yalnızca**
+  `public/platform/platform.css` (`pf-*` sınıfları) + ikon fontu. Platform
+  bileşenleri `components/platform/kit.tsx`; müşteri bileşenleri
+  (`components/ui.tsx`) orada kullanılmaz. İki taraf arasında geçiş tam sayfa
+  yüklemesiyle olur (`window.location.href`).
 
 - **Tailwind yok.** Arayüz, ThemeForest **Bizzark** temasının derlenmiş CSS'i
   (Bootstrap 4 + Material Design Kit) üzerine kuruludur.
@@ -212,8 +262,10 @@ frontend form doğrulaması **aynı şemayı** kullanır.
   da `[dir] .sy-x` biçiminde yazın; aksi halde `position: fixed` gibi tanımlar
   sessizce ezilir (navbar/sidebar akışa düşer). Benzer şekilde tema bazı
   bileşenleri `display: none` ile gizler — alt menüler `open` sınıfı ister.
-- `custom.css` değiştiğinde `layout.tsx` içindeki **`THEME_VERSION`** sabitini
-  artırın; `public/` dosyaları hash'lenmediği için tarayıcı eskisini kullanır.
+- `custom.css` değiştiğinde `app/(app)/layout.tsx` içindeki **`THEME_VERSION`**
+  sabitini, `platform.css` değiştiğinde `app/(platform)/layout.tsx` içindeki
+  `PLATFORM_CSS_VERSION`'ı artırın; `public/` dosyaları hash'lenmediği için
+  tarayıcı eskisini kullanır.
 - **`StatCard`** telefonda (<576 px) ikonu gizler ve tutarı küçültür: iki
   sütunlu yerleşimde "₺1.048.725,00" gibi bölünemeyen tutar sayfayı taşırıyordu.
 - **Material Icons fontu eski:** `how_to_reg`, `apartment`, `speed`,
@@ -237,13 +289,14 @@ frontend form doğrulaması **aynı şemayı** kullanır.
 | 2 | İş Takibi (Kanban) | ✅ |
 | 3 | Sayaç paylaşım sihirbazı | ✅ |
 | 4 | Bildirim motoru | ✅ |
-| 5 | Sakin portalı | ✅ |
+| 5 | İkamet Eden Portalı | ✅ |
 | 6 | Raporlar, PDF, KVKK maskesi, ödeme skoru | ✅ |
 | 7 | Güvenlik (olaylar, kayıp eşya, ziyaretçi) | ✅ |
 
-Çalışan API modülleri yalnızca `Prisma, Auth, Sites, Finance, People, Tickets, Meters, Notifications, Portal, Reports, Security`
-(`apps/api/src/app.module.ts`). Menüde `ready: false` olan modüller
-(`apps/web/src/components/sidebar.tsx`) görünür ama tıklanamaz.
+Çalışan API modülleri yalnızca `Prisma, Auth, Sites, Finance, People, Tickets, Meters, Notifications, Portal, Reports, Security, Platform`
+(`apps/api/src/app.module.ts`). Menüde (`apps/web/src/components/sidebar.tsx`)
+yalnızca çalışan modüller var; yapılmamış modül (ADA, web sitesi, sigorta)
+menüye konmaz. Müşterinin paketinde olmayan modül kilitli görünür (`feature`).
 
 ### Tamamlanmamış fazlarda neyin hazır olduğu
 
@@ -257,7 +310,7 @@ başlamayın — aşağıdakileri kullanın.
   filtreli okuyarak (`requireTicket`) ya da `ticket: { siteId }` koşuluyla
   yapılır (`tickets.service.ts`).
 - Talep uç noktaları sınıf düzeyinde `@Roles` ile personele kapalıdır;
-  `RESIDENT` erişemez (sakin talepleri Faz 5 portalından gelecek). Masrafı
+  `RESIDENT` erişemez (ikamet eden talepleri Faz 5 portalından gelecek). Masrafı
   gider faturasına çevirmek yalnızca `SITE_ADMIN`/`ACCOUNTANT`.
 - Panoda tamamlananlar yalnızca son 30 gün; tamamı `/teknik/liste`'de.
 - Eksik: talep eki yükleme (`TicketAttachment` — dosya depolama yok),
@@ -302,23 +355,23 @@ başlamayın — aşağıdakileri kullanın.
   webhook'u yok, KVKK/ileti izni (İYS) kontrolü yok, kişinin diline göre
   şablon seçimi yok (kampanya tek metin).
 
-**Faz 5 — Sakin portalı (bitti, notlar)**
+**Faz 5 — İkamet Eden Portalı (bitti, notlar)**
 - Web: `apps/web/src/app/(portal)/portal/*` (özet, hesap, talepler, duyurular,
   mesajlar, ödeme, profil). Giriş sonrası rol `RESIDENT` ise `/portal`'a,
-  değilse `/ozet`'e gidilir (`homePath`); panel düzeni sakini portala geri yollar.
+  değilse `/ozet`'e gidilir (`homePath`); panel düzeni ikamet edeni portala geri yollar.
 - Portal erişimi kişi kartından verilir (`/people/:id/portal-access`): yeni
   hesapta geçici parola **yalnızca yanıtta** döner, saklanmaz/loglanmaz.
-  Personel e-postası sakine bağlanamaz; personel parolası buradan sıfırlanamaz.
+  Personel e-postası ikamet edene bağlanamaz; personel parolası buradan sıfırlanamaz.
 - Çevrimiçi ödeme **mock** (`PAYMENT_DRIVER=mock`): Luhn + son kullanma
   doğrulanır, `…0002` kartı reddedilir (402). Başarılıysa sitenin ilk aktif
   BANK hesabına tahsilat makbuzu kesilir; evrakta yalnızca son 4 hane.
   `{{odemeLinki}}` → `PUBLIC_WEB_URL` (yoksa `CORS_ORIGIN`) + `/portal/odeme`.
-- Sakin talepte yalnızca `isPublic` yorumları görür, personel adı "Yönetim"
+- İkamet eden talepte yalnızca `isPublic` yorumları görür, personel adı "Yönetim"
   olarak gösterilir; masraf ve işlem geçmişi dönmez.
 - Çıkışta ve girişte React Query önbelleği temizlenir (`useLogout`) — aynı
   sekmede giren sonraki kullanıcı öncekinin rolünü/verisini görmesin.
 - Eksik: gerçek ödeme kuruluşu (3D Secure) entegrasyonu ve ödeme isteğinde
-  idempotency anahtarı; sakinin kendi iletişim bilgisini güncellemesi;
+  idempotency anahtarı; ikamet edenin kendi iletişim bilgisini güncellemesi;
   e-postayla davet/parola sıfırlama bağlantısı (şimdilik yönetici geçici
   parolayı iletir); PWA/mobil bildirim (PUSH kanalı).
 
@@ -371,7 +424,7 @@ başlamayın — aşağıdakileri kullanın.
 - Olay metni düz metindir (HTML yorumlanmaz, `white-space: pre-wrap`).
 - Eksik: ziyaretçi TC'si için saklama süresi/otomatik silme (KVKK politikası
   kararı bekliyor), eşya fotoğrafı (`photoPath` — dosya depolama yok),
-  sakinin portaldan kayıp bildirmesi / bulunan eşyaları görmesi, araç
+  ikamet edenin portaldan kayıp bildirmesi / bulunan eşyaları görmesi, araç
   (`Vehicle`) yönetim ekranı, emanet süresinin site parametresi olması.
 
 ### Diğer tamamlanmamış işler
@@ -404,6 +457,12 @@ başlamayın — aşağıdakileri kullanın.
   oturan aynı adlı kişi (yeniden aktarım kopya üretmesin). Mevcut daire/kişi
   bilgisi değiştirilmez. CSV Windows-1254 de okunur (`lib/files.ts`).
   Gövde sınırı bu yüzden 1 MB (`main.ts`). Eksik: `.xlsx` doğrudan okuma.
+- **Kullanım kılavuzu** düz HTML: `apps/web/public/kilavuz.html`, adresi
+  `/kilavuz` (`next.config.ts` rewrite). Giriş sayfası, panel hesap menüsü ve
+  platform kenar çubuğundan bağlantı var. Ekran/menü adı değişince kılavuzu da
+  güncelleyin.
+- **`prisma format` kullanmayın**: şema dosyasının tamamını yeniden hizalar
+  (yüzlerce satırlık gereksiz fark). Değişikliği elle, mevcut hizaya uyarak yapın.
 - **Projede prettier yapılandırması yok** — `npx prettier --write` dosyayı
   varsayılan stile (çift tırnak, 80 kolon) çevirir. Kullanmayın; mevcut stil
   tek tırnak, ~120 kolon.

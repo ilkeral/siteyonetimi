@@ -12,6 +12,7 @@
  *   pnpm --filter @sy/api run test:notifications
  */
 import { PrismaClient } from '@sy/db';
+import { cleanupTestOrganizations, testOrganization } from './helpers';
 import * as argon2 from 'argon2';
 
 const BASE = process.env.API_BASE ?? 'http://localhost:3101';
@@ -77,6 +78,7 @@ async function waitFor(id: string, status = 'COMPLETED', timeoutMs = 30_000): Pr
 
 async function cleanup() {
   await prisma.site.deleteMany({ where: { name: { in: [SITE_NAME, OTHER_SITE_NAME] } } });
+  await cleanupTestOrganizations(prisma);
   await prisma.user.deleteMany({ where: { email: { in: USERS } } });
 }
 
@@ -84,12 +86,12 @@ async function setup() {
   await cleanup();
   const site = await prisma.site.create({
     data: {
-      name: SITE_NAME,
+      name: SITE_NAME, organization: testOrganization(SITE_NAME),
       city: 'İzmir',
       settings: { create: { notificationFooter: 'Site Yönetimi', notificationSenderName: 'Test Yönetim' } },
     },
   });
-  const other = await prisma.site.create({ data: { name: OTHER_SITE_NAME, city: 'Bursa', settings: { create: {} } } });
+  const other = await prisma.site.create({ data: { name: OTHER_SITE_NAME, organization: testOrganization(OTHER_SITE_NAME), city: 'Bursa', settings: { create: {} } } });
   siteId = site.id;
   otherSiteId = other.id;
 

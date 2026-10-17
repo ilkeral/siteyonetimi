@@ -9,7 +9,7 @@ import {
   type UnitMeterReadingsInput,
 } from '@sy/shared';
 import { MetersService } from './meters.service';
-import { Roles } from '../common/decorators';
+import { Feature, Roles } from '../common/decorators';
 import { ZodBody } from '../common/zod-validation.pipe';
 import { AuditService } from '../common/audit.service';
 
@@ -19,6 +19,7 @@ import { AuditService } from '../common/audit.service';
  */
 @ApiTags('Sayaç İşlemleri')
 @Roles('SITE_ADMIN', 'ACCOUNTANT', 'TECHNICIAN')
+@Feature('meters')
 @Controller('meters/distributions')
 export class MetersController {
   constructor(

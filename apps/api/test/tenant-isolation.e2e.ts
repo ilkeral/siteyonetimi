@@ -9,6 +9,7 @@
  * da AuthGuard bozulursa kırmızıya döner.
  */
 import { PrismaClient } from '@sy/db';
+import { cleanupTestOrganizations, testOrganization } from './helpers';
 import * as argon2 from 'argon2';
 
 const BASE = process.env.API_BASE ?? 'http://localhost:3101';
@@ -51,13 +52,14 @@ async function main(): Promise<void> {
   for (const name of ['TEST SITE A', 'TEST SITE B']) {
     const existing = await prisma.site.findFirst({ where: { name } });
     if (existing) await prisma.site.delete({ where: { id: existing.id } });
+    await cleanupTestOrganizations(prisma);
   }
 
   const siteA = await prisma.site.create({
-    data: { name: 'TEST SITE A', city: 'İstanbul', settings: { create: {} } },
+    data: { name: 'TEST SITE A', organization: testOrganization('TEST SITE A'), city: 'İstanbul', settings: { create: {} } },
   });
   const siteB = await prisma.site.create({
-    data: { name: 'TEST SITE B', city: 'Ankara', settings: { create: {} } },
+    data: { name: 'TEST SITE B', organization: testOrganization('TEST SITE B'), city: 'Ankara', settings: { create: {} } },
   });
 
   const passwordHash = await argon2.hash('Test1234!');
@@ -88,7 +90,7 @@ async function main(): Promise<void> {
   const unitA = await prisma.unit.create({ data: { siteId: siteA.id, blockId: blockA.id, doorNumber: '1' } });
   const blockB = await prisma.block.create({ data: { siteId: siteB.id, name: 'B BLOK' } });
   const unitB = await prisma.unit.create({ data: { siteId: siteB.id, blockId: blockB.id, doorNumber: '1' } });
-  const personB = await prisma.person.create({ data: { siteId: siteB.id, firstName: 'B', lastName: 'Sakini' } });
+  const personB = await prisma.person.create({ data: { siteId: siteB.id, firstName: 'B', lastName: 'İkamet edeni' } });
 
   // --------------------------------------------------------------- testler
   const loginA = await api('/auth/login', {
@@ -215,6 +217,7 @@ async function main(): Promise<void> {
 
   // ------------------------------------------------------------- temizlik
   await prisma.site.deleteMany({ where: { id: { in: [siteA.id, siteB.id] } } });
+  await cleanupTestOrganizations(prisma);
   await prisma.user.deleteMany({ where: { email: { in: ['a@test.local', 'b@test.local'] } } });
 
   console.log(`\n${passed} başarılı, ${failed} başarısız`);

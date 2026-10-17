@@ -9,7 +9,7 @@ export const ROLE_LABELS = {
   ACCOUNTANT: 'Muhasebe',
   TECHNICIAN: 'Teknik Personel',
   SECURITY: 'Güvenlik',
-  RESIDENT: 'Sakin',
+  RESIDENT: 'İkamet Eden',
 } as const;
 
 export const OCCUPANCY_ROLE_LABELS = {

@@ -9,6 +9,7 @@
  *   pnpm --filter @sy/api run test:tickets
  */
 import { PrismaClient } from '@sy/db';
+import { cleanupTestOrganizations, testOrganization } from './helpers';
 import * as argon2 from 'argon2';
 
 const BASE = process.env.API_BASE ?? 'http://localhost:3101';
@@ -61,6 +62,7 @@ async function login(email: string): Promise<string> {
 
 async function cleanup() {
   await prisma.site.deleteMany({ where: { name: { in: [SITE_NAME, OTHER_SITE_NAME] } } });
+  await cleanupTestOrganizations(prisma);
   await prisma.user.deleteMany({ where: { email: { in: USERS } } });
 }
 
@@ -68,10 +70,10 @@ async function setup() {
   await cleanup();
 
   const site = await prisma.site.create({
-    data: { name: SITE_NAME, city: 'İzmir', settings: { create: {} } },
+    data: { name: SITE_NAME, organization: testOrganization(SITE_NAME), city: 'İzmir', settings: { create: {} } },
   });
   const other = await prisma.site.create({
-    data: { name: OTHER_SITE_NAME, city: 'Bursa', settings: { create: {} } },
+    data: { name: OTHER_SITE_NAME, organization: testOrganization(OTHER_SITE_NAME), city: 'Bursa', settings: { create: {} } },
   });
   siteId = site.id;
   otherSiteId = other.id;
@@ -80,7 +82,7 @@ async function setup() {
   const [admin, tech, resident] = await Promise.all(
     USERS.map((email, i) =>
       prisma.user.create({
-        data: { email, passwordHash, fullName: ['Talep Yöneticisi', 'Teknik Personel', 'Sakin'][i] },
+        data: { email, passwordHash, fullName: ['Talep Yöneticisi', 'Teknik Personel', 'İkamet eden'][i] },
       }),
     ),
   );
@@ -119,7 +121,7 @@ async function main(): Promise<void> {
   const techId = meta.data.assignees.find((a: any) => a.role === 'TECHNICIAN')?.id;
   check('Meta: departman ve teknik personel listeleniyor', !!departmentId && !!techId);
   check(
-    'Meta: sakin atanabilir personel listesinde yok',
+    'Meta: ikamet eden atanabilir personel listesinde yok',
     !meta.data.assignees.some((a: any) => a.role === 'RESIDENT'),
   );
 
@@ -301,7 +303,7 @@ async function main(): Promise<void> {
 
   // ------------------------------------------------------- 8) yetki
   const residentBoard = await api('/tickets/board', { as: 'resident' });
-  check('Sakin personel panosuna erişemiyor (403)', residentBoard.status === 403);
+  check('İkamet eden personel panosuna erişemiyor (403)', residentBoard.status === 403);
 
   // ---------------------------------------------------- 9) izolasyon
   const foreignTicket = await prisma.ticket.findFirstOrThrow({ where: { siteId: otherSiteId } });
@@ -331,7 +333,7 @@ async function main(): Promise<void> {
   const outsider = await prisma.user.findFirstOrThrow({ where: { email: USERS[2] } });
   const assignResident = await api('/tickets', {
     method: 'POST',
-    body: { subject: 'Atama', description: 'Sakine atama', assigneeId: outsider.id },
+    body: { subject: 'Atama', description: 'İkamet edene atama', assigneeId: outsider.id },
   });
   check('Talep personel olmayan kullanıcıya atanamıyor (400)', assignResident.status === 400);
 

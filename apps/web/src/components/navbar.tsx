@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { api, session, type SiteSummary } from '@/lib/api';
@@ -52,6 +53,13 @@ export function Navbar({
   }
 
   const logout = useLogout();
+  // Müşteri sahibi mi (Firma sayfası bağlantısı)
+  const { data: organizations } = useQuery({
+    queryKey: ['organization', 'mine'],
+    queryFn: () => api.get<{ id: string }[]>('/organization/mine'),
+    staleTime: 5 * 60_000,
+  });
+  const isOwner = (organizations?.length ?? 0) > 0;
 
   const initials = (data?.user.fullName ?? '??')
     .split(' ')
@@ -175,6 +183,19 @@ export function Navbar({
                 <div className="text-muted small">{data?.user.email}</div>
               </div>
               <div className="dropdown-divider" />
+              {isOwner && (
+                <Link href="/firma" className="dropdown-item" onClick={() => setOpenMenu(null)}>
+                  Firma ve abonelik
+                </Link>
+              )}
+              <a href="/kilavuz" target="_blank" rel="noopener" className="dropdown-item">
+                Kullanım kılavuzu
+              </a>
+              {data?.user.isSuperAdmin && (
+                <a href="/platform" className="dropdown-item">
+                  Platform paneline dön
+                </a>
+              )}
               <button type="button" className="dropdown-item" onClick={logout}>
                 Çıkış yap
               </button>

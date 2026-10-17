@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { TICKET_STATUS_LABELS } from '@sy/shared';
 import { api } from '@/lib/api';
 
-/** Sakin portalı ekranlarının ortak tipleri */
+/** İkamet Eden Portalı ekranlarının ortak tipleri */
 
 export interface PortalOpenItem {
   documentId: string;
@@ -49,7 +49,7 @@ export function usePortalSummary(enabled = true) {
   });
 }
 
-/** Sakine sade durum: 8 iş akışı kolonunu 3 anlaşılır aşamaya indirger */
+/** İkamet edene sade durum: 8 iş akışı kolonunu 3 anlaşılır aşamaya indirger */
 export function residentStatus(status: TicketStatus): { label: string; tone: string } {
   if (status === 'COMPLETED') return { label: 'Tamamlandı', tone: 'badge-success' };
   if (status === 'WAITING') return { label: 'Alındı', tone: 'badge-secondary' };

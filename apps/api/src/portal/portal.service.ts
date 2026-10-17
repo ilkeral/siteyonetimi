@@ -19,10 +19,10 @@ function unitLabel(unit: { doorNumber: string; block: { name: string } | null })
 }
 
 /**
- * SAKİN PORTALI
+ * İKAMET EDEN PORTALI
  *
  * ÇOK KİRACILILIĞIN İÇİNDE İKİNCİ BİR SINIR: site filtresi Prisma eklentisinden
- * gelir, ama aynı sitedeki başka bir sakinin verisi de görülmemelidir. Bu
+ * gelir, ama aynı sitedeki başka bir ikamet edenin verisi de görülmemelidir. Bu
  * yüzden buradaki **her** sorgu `requirePersonId()` ile oturumun kişisine
  * daraltılır. İstemciden kişi/cari kimliği alınmaz; daire kimliği alınırsa
  * kişinin kendi daireleri arasında olduğu doğrulanır.
@@ -93,7 +93,7 @@ export class PortalService {
     return this.ledger.statement(account.id, from, to);
   }
 
-  /** PDF için ekstre — sakinin kendi verisi, maskesiz */
+  /** PDF için ekstre — ikamet edenin kendi verisi, maskesiz */
   async statementReport(from: Date, to: Date) {
     const personId = requirePersonId();
     const [statement, person, units, site] = await Promise.all([
@@ -173,7 +173,7 @@ export class PortalService {
     });
   }
 
-  /** Sakin yalnızca herkese açık yorumları görür; iç notlar, masraflar ve geçmiş gizlidir */
+  /** İkamet eden yalnızca herkese açık yorumları görür; iç notlar, masraflar ve geçmiş gizlidir */
   async ticket(id: string) {
     const ticket = await this.db.ticket.findFirst({
       where: { id, personId: requirePersonId() },
@@ -204,7 +204,7 @@ export class PortalService {
       unit: ticket.unit ? unitLabel(ticket.unit) : null,
       comments: ticket.comments.map(({ authorId, ...comment }) => ({
         ...comment,
-        // Personelin adı sakine gösterilmez
+        // Personelin adı ikamet edene gösterilmez
         author: authorId === userId ? 'Siz' : 'Yönetim',
         mine: authorId === userId,
       })),
@@ -247,7 +247,7 @@ export class PortalService {
   // ---------------------------------------------------------------- ödeme
 
   /**
-   * Çevrimiçi ödeme (mock sağlayıcı). Başarılıysa sakinin carisine tahsilat
+   * Çevrimiçi ödeme (mock sağlayıcı). Başarılıysa ikamet edenin carisine tahsilat
    * makbuzu kesilir; FIFO kapatma en eski borçtan başlar. Kart verisi
    * saklanmaz — evrak açıklamasında yalnızca son 4 hane bulunur.
    *

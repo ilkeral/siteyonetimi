@@ -10,6 +10,7 @@ import {
 import { PRISMA, type ExtendedPrismaClient } from '../prisma/prisma.client';
 import { requireSiteId } from '../tenant/tenant.context';
 import { AuditService } from '../common/audit.service';
+import { EntitlementsService } from '../platform/entitlements.service';
 
 type Db = Pick<ExtendedPrismaClient, 'block' | 'unit' | 'person' | 'unitOccupancy' | 'siteSettings'>;
 
@@ -25,6 +26,7 @@ export class StructureImportService {
   constructor(
     @Inject(PRISMA) private readonly db: ExtendedPrismaClient,
     private readonly audit: AuditService,
+    private readonly entitlements: EntitlementsService,
   ) {}
 
   private async snapshot(db: Db): Promise<ExistingStructure> {
@@ -74,6 +76,14 @@ export class StructureImportService {
 
   async preview(text: string) {
     const { parsed, plan, errors } = await this.plan(text, this.db);
+    // Paket daire sınırı: aşılacaksa önizlemede görünür, aktarıma izin verilmez
+    const capacity = await this.entitlements.unitCapacity(plan.units.length);
+    if (!capacity.ok) {
+      errors.unshift({
+        line: 0,
+        message: `Paketinizin daire sınırı (${capacity.limit}) aşılıyor: ${capacity.remaining} yeni daire eklenebilir, listede ${plan.units.length} yeni daire var.`,
+      });
+    }
     return {
       columns: parsed.columns,
       summary: plan.summary,
@@ -97,6 +107,7 @@ export class StructureImportService {
           });
         }
         if (!plan.rows.length) throw new BadRequestException('Aktarılacak satır yok');
+        await this.entitlements.assertUnitCapacity(plan.units.length, siteId);
         await this.write(tx, siteId, plan);
         return plan.summary;
       },

@@ -16,6 +16,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { PortalModule } from './portal/portal.module';
 import { ReportsModule } from './reports/reports.module';
 import { SecurityModule } from './security/security.module';
+import { PlatformModule } from './platform/platform.module';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter';
 import { APP_FILTER } from '@nestjs/core';
 
@@ -37,6 +38,7 @@ import { APP_FILTER } from '@nestjs/core';
     PortalModule,
     ReportsModule,
     SecurityModule,
+    PlatformModule,
   ],
   controllers: [HealthController],
   providers: [

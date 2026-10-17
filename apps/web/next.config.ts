@@ -15,6 +15,10 @@ const config: NextConfig = {
   transpilePackages: ['@sy/shared'],
   outputFileTracingRoot: path.join(process.cwd(), '../../'),
   eslint: { ignoreDuringBuilds: true },
+  /** Kullanım kılavuzu düz HTML olarak public/ altında; kısa adresi /kilavuz */
+  async rewrites() {
+    return [{ source: '/kilavuz', destination: '/kilavuz.html' }];
+  },
 };
 
 export default config;

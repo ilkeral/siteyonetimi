@@ -14,6 +14,46 @@ const prisma = new PrismaClient();
 const SITE_NAME = 'ADAKENT APARTMANI';
 const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? 'admin@site.local';
 const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? 'Admin1234!';
+const PLATFORM_EMAIL = process.env.SEED_PLATFORM_EMAIL ?? 'platform@site.local';
+const PLATFORM_PASSWORD = process.env.SEED_PLATFORM_PASSWORD ?? 'Platform1234!';
+const ORGANIZATION_NAME = 'Adakent Yönetim';
+
+/**
+ * Örnek paketler — fiyat ve sınırlar yalnızca demo içindir; gerçek değerleri
+ * platform yöneticisi panelden belirler. Kod sabittir (upsert anahtarı).
+ */
+const PLANS = [
+  {
+    code: 'baslangic',
+    name: 'Başlangıç',
+    description: 'Tek site / apartman yönetimi için temel paket',
+    monthlyPrice: 490,
+    maxSites: 1,
+    maxUnits: 100,
+    features: ['tickets', 'portal'],
+    order: 0,
+  },
+  {
+    code: 'profesyonel',
+    name: 'Profesyonel',
+    description: 'Birkaç site yöneten yönetimler: sayaç, toplu bildirim, gelişmiş raporlar',
+    monthlyPrice: 1490,
+    maxSites: 5,
+    maxUnits: 1000,
+    features: ['tickets', 'portal', 'meters', 'notifications', 'reports'],
+    order: 1,
+  },
+  {
+    code: 'kurumsal',
+    name: 'Kurumsal',
+    description: 'Yönetim şirketleri: sınırsız site ve daire, tüm modüller',
+    monthlyPrice: 4990,
+    maxSites: null,
+    maxUnits: null,
+    features: ['tickets', 'portal', 'meters', 'notifications', 'reports', 'security'],
+    order: 2,
+  },
+];
 
 // --- Sabit tohumlu rastgelelik (Mulberry32) --------------------------------
 let seedState = 20260814;
@@ -66,15 +106,53 @@ async function main(): Promise<void> {
 
   // ---------------------------------------------------------------- kullanıcı
   const passwordHash = await argon2.hash(ADMIN_PASSWORD);
+  // Site yöneticisi + müşteri sahibi. Platform yöneticisi DEĞİL: süper yönetici
+  // müşteri verisine yalnızca destek erişimiyle girer.
   const admin = await prisma.user.upsert({
     where: { email: ADMIN_EMAIL },
-    update: { passwordHash, isSuperAdmin: true, isActive: true },
+    update: { passwordHash, isSuperAdmin: false, isActive: true },
     create: {
       email: ADMIN_EMAIL,
       passwordHash,
-      fullName: 'Sistem Yöneticisi',
+      fullName: 'Site Yöneticisi',
+    },
+  });
+
+  // Platform (SaaS) yöneticisi: müşteri, paket, abonelik — /platform
+  await prisma.user.upsert({
+    where: { email: PLATFORM_EMAIL },
+    update: { isSuperAdmin: true, isActive: true },
+    create: {
+      email: PLATFORM_EMAIL,
+      passwordHash: await argon2.hash(PLATFORM_PASSWORD),
+      fullName: 'Platform Yöneticisi',
       isSuperAdmin: true,
     },
+  });
+
+  // ------------------------------------------------------------ paket + müşteri
+  for (const plan of PLANS) {
+    await prisma.plan.upsert({ where: { code: plan.code }, update: plan, create: plan });
+  }
+  const kurumsal = await prisma.plan.findUniqueOrThrow({ where: { code: 'kurumsal' } });
+  const organization =
+    (await prisma.organization.findFirst({ where: { name: ORGANIZATION_NAME } })) ??
+    (await prisma.organization.create({
+      data: {
+        name: ORGANIZATION_NAME,
+        kind: 'MANAGEMENT_COMPANY',
+        status: 'ACTIVE',
+        planId: kurumsal.id,
+        paidUntil: new Date(new Date().getFullYear() + 1, 0, 1),
+        contactName: 'Site Yöneticisi',
+        contactEmail: ADMIN_EMAIL,
+        city: 'İstanbul',
+      },
+    }));
+  await prisma.organizationMember.upsert({
+    where: { organizationId_userId: { organizationId: organization.id, userId: admin.id } },
+    update: {},
+    create: { organizationId: organization.id, userId: admin.id, role: 'OWNER' },
   });
 
   const technician = await prisma.user.upsert({
@@ -100,6 +178,7 @@ async function main(): Promise<void> {
   // -------------------------------------------------------------------- site
   const site = await prisma.site.create({
     data: {
+      organizationId: organization.id,
       name: SITE_NAME,
       type: 'APARTMAN',
       city: 'İstanbul',
@@ -349,7 +428,7 @@ async function main(): Promise<void> {
     },
   });
 
-  // ------------------------------------------------------------- sakin hesabı
+  // ------------------------------------------------------------- ikamet eden hesabı
   // İlk malik portala bağlanır: sakin@site.local ile giriş /portal'a düşer
   const resident = people[0];
   const residentHash = await argon2.hash('Sakin1234!');
@@ -371,8 +450,8 @@ async function main(): Promise<void> {
   const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000);
   await prisma.vehicle.createMany({
     data: [
-      { siteId, personId: people[0].id, plate: '34ABC123', brand: 'Renault', model: 'Clio', color: 'Beyaz', status: 'sakin' },
-      { siteId, personId: people[3].id, plate: '34KL4521', brand: 'Fiat', model: 'Egea', color: 'Gri', status: 'sakin' },
+      { siteId, personId: people[0].id, plate: '34ABC123', brand: 'Renault', model: 'Clio', color: 'Beyaz', status: 'ikamet eden' },
+      { siteId, personId: people[3].id, plate: '34KL4521', brand: 'Fiat', model: 'Egea', color: 'Gri', status: 'ikamet eden' },
       { siteId, personId: people[5].id, plate: '06ZZ999', status: 'yasaklı' },
     ],
   });
@@ -418,10 +497,11 @@ async function main(): Promise<void> {
 
   console.log('\n✓ Demo veri hazır');
   console.log(`  Site      : ${site.name} (${site.district}/${site.city})`);
-  console.log(`  Giriş     : ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);
+  console.log(`  Giriş     : ${ADMIN_EMAIL} / ${ADMIN_PASSWORD} (site yöneticisi, müşteri sahibi)`);
+  console.log(`  Platform  : ${PLATFORM_EMAIL} / ${PLATFORM_PASSWORD} (/platform)`);
   console.log(`  Teknik    : teknik@site.local / Teknik1234!`);
   console.log(`  Güvenlik  : guvenlik@site.local / Guvenlik1234!`);
-  console.log(`  Sakin     : sakin@site.local / Sakin1234! (${resident.firstName} ${resident.lastName})`);
+  console.log(`  İkamet eden     : sakin@site.local / Sakin1234! (${resident.firstName} ${resident.lastName})`);
   console.log(`  Daire     : ${units.length}, Kişi: ${people.length}, Talep: ${ticketSeeds.length}`);
 }
 

@@ -166,11 +166,22 @@ export const api = {
     }),
 };
 
-/** Rolün giriş sayfası: sakin portala, güvenlik görevlisi güvenlik özetine, diğer personel panele */
+/** Rolün giriş sayfası: İkamet Eden Portalına, güvenlik görevlisi güvenlik özetine, diğer personel panele */
 export function homePath(role: string | null | undefined): string {
   if (role === 'RESIDENT') return '/portal';
   if (role === 'SECURITY') return '/guvenlik';
   return '/ozet';
+}
+
+export interface SiteSubscription {
+  organizationName: string;
+  status: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'SUSPENDED' | 'CANCELLED';
+  planName: string | null;
+  access: 'FULL' | 'READ_ONLY' | 'BLOCKED';
+  reason: string | null;
+  daysLeft: number | null;
+  /** null = tüm modüller açık (paketsiz / özel sözleşme) */
+  features: string[] | null;
 }
 
 export interface SiteSummary {
@@ -179,6 +190,10 @@ export interface SiteSummary {
   city: string | null;
   district: string | null;
   role: string;
+  /** Platform yöneticisinin destek erişimi bitişi; üyelikle girişte null */
+  supportUntil?: string | null;
+  /** Sitenin müşteri hesabı ve abonelik durumu */
+  subscription?: SiteSubscription;
 }
 
 export interface LoginResponse {

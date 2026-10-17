@@ -14,7 +14,7 @@ export interface TenantContext {
   siteId: string | null;
   userId: string | null;
   role: Role | null;
-  /** Sakin portalında oturumun ait olduğu kişi; personelde null */
+  /** İkamet Eden Portalında oturumun ait olduğu kişi; personelde null */
   personId: string | null;
   isSuperAdmin: boolean;
   /** true ise otomatik siteId filtresi UYGULANMAZ (seed, cron, sistem işleri) */
@@ -79,7 +79,7 @@ function emptyContext(): TenantContext {
 }
 
 /**
- * Sakin portalı: oturumun kişi kaydı. Portal servislerinde her sorgu bu
+ * İkamet Eden Portalı: oturumun kişi kaydı. Portal servislerinde her sorgu bu
  * kimlikle sınırlanır — istemciden gelen kişi kimliğine asla güvenilmez.
  */
 export function requirePersonId(): string {

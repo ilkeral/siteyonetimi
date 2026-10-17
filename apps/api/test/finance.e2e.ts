@@ -9,6 +9,7 @@
  *   pnpm --filter @sy/api run test:finance
  */
 import { PrismaClient } from '@sy/db';
+import { cleanupTestOrganizations, testOrganization } from './helpers';
 import * as argon2 from 'argon2';
 
 const BASE = process.env.API_BASE ?? 'http://localhost:3101';
@@ -53,10 +54,11 @@ const tl = (minor: number) => (minor / 100).toLocaleString('tr-TR', { minimumFra
 async function setup() {
   const existing = await prisma.site.findFirst({ where: { name: SITE_NAME } });
   if (existing) await prisma.site.delete({ where: { id: existing.id } });
+  await cleanupTestOrganizations(prisma);
 
   const site = await prisma.site.create({
     data: {
-      name: SITE_NAME,
+      name: SITE_NAME, organization: testOrganization(SITE_NAME),
       city: 'İstanbul',
       settings: {
         create: {
@@ -380,6 +382,7 @@ async function main(): Promise<void> {
 
   // --------------------------------------------------------------- temizlik
   await prisma.site.delete({ where: { id: siteId } });
+  await cleanupTestOrganizations(prisma);
   await prisma.user.deleteMany({ where: { email: 'finans@test.local' } });
 
   console.log(`\n${passed} başarılı, ${failed} başarısız`);
@@ -390,6 +393,7 @@ main()
   .catch(async (error) => {
     console.error('Test hatası:', error);
     if (siteId) await prisma.site.delete({ where: { id: siteId } }).catch(() => undefined);
+    await cleanupTestOrganizations(prisma);
     process.exit(1);
   })
   .finally(() => prisma.$disconnect());

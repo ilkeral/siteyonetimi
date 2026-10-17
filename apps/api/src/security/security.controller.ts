@@ -18,7 +18,7 @@ import {
   type SecurityIncidentInput,
   type VisitorInput,
 } from '@sy/shared';
-import { Roles } from '../common/decorators';
+import { Feature, Roles } from '../common/decorators';
 import { ZodBody, ZodQuery } from '../common/zod-validation.pipe';
 import { SecurityService } from './security.service';
 
@@ -58,12 +58,13 @@ const visitorQuerySchema = paginationSchema.extend({
 });
 
 /**
- * Güvenlik modülü: güvenlik personeli ve site yöneticisi. Sakin (RESIDENT)
+ * Güvenlik modülü: güvenlik personeli ve site yöneticisi. İkamet eden (RESIDENT)
  * varsayılan ret kuralıyla zaten giremez; muhasebe ve teknik personel de kapalı.
  * Silme işlemleri yalnızca yönetici.
  */
 @ApiTags('Güvenlik')
 @Roles('SITE_ADMIN', 'SECURITY')
+@Feature('security')
 @Controller('security')
 export class SecurityController {
   constructor(private readonly security: SecurityService) {}

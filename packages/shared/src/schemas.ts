@@ -339,9 +339,9 @@ export const unitMeterReadingsSchema = z.object({
 });
 export type UnitMeterReadingsInput = z.infer<typeof unitMeterReadingsSchema>;
 
-// --- Sakin portalı ----------------------------------------------------------
+// --- İkamet Eden Portalı ----------------------------------------------------------
 
-/** Sakinin açtığı talep: kişi, kanal ve öncelik sunucuda belirlenir */
+/** İkamet edenin açtığı talep: kişi, kanal ve öncelik sunucuda belirlenir */
 export const portalTicketSchema = z.object({
   subject: z.string().trim().min(3, 'Konu en az 3 karakter').max(200),
   description: z.string().trim().min(3, 'Açıklama zorunlu').max(5000),

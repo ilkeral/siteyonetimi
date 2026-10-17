@@ -7,7 +7,7 @@ import { ReportsService } from './reports.service';
 import { PaymentScoreService } from './payment-score.service';
 import { agingPdf, incomeStatementPdf, statementPdf } from './pdf';
 import { agingXlsx, incomeStatementXlsx, statementXlsx } from './xlsx';
-import { Roles } from '../common/decorators';
+import { Feature, Roles } from '../common/decorators';
 import { ZodQuery } from '../common/zod-validation.pipe';
 import { AuditService } from '../common/audit.service';
 
@@ -103,6 +103,7 @@ export class ReportsController {
   }
 
   @Get('statements/xlsx')
+  @Feature('reports')
   @ApiOperation({ summary: 'Cari hesap ekstresi — Excel' })
   async statementsXlsx(
     @Query(new ZodQuery(statementQuerySchema)) q: z.infer<typeof statementQuerySchema>,
@@ -136,6 +137,7 @@ export class ReportsController {
   }
 
   @Get('aging/xlsx')
+  @Feature('reports')
   @ApiOperation({ summary: 'Borç yaşlandırma — Excel' })
   async agingXlsx(@Query(new ZodQuery(agingQuerySchema)) q: z.infer<typeof agingQuerySchema>, @Res({ passthrough: true }) res: Response) {
     const data = await this.reports.aging(q.asOf, q.mask, q.blockId);
@@ -150,12 +152,14 @@ export class ReportsController {
   // ---------------------------------------------------------- gelir-gider
 
   @Get('income-statement')
+  @Feature('reports')
   @ApiOperation({ summary: 'Gelir-gider (tahakkuk esaslı, kategori × ay) ve kasa+banka nakit durumu' })
   incomeStatement(@Query(new ZodQuery(incomeQuerySchema)) q: z.infer<typeof incomeQuerySchema>) {
     return this.reports.incomeStatement(q.from, q.to);
   }
 
   @Get('income-statement/pdf')
+  @Feature('reports')
   @ApiOperation({ summary: 'Gelir-gider — PDF' })
   async incomeStatementPdf(@Query(new ZodQuery(incomeQuerySchema)) q: z.infer<typeof incomeQuerySchema>, @Res({ passthrough: true }) res: Response) {
     const data = await this.reports.incomeStatement(q.from, q.to);
@@ -164,6 +168,7 @@ export class ReportsController {
   }
 
   @Get('income-statement/xlsx')
+  @Feature('reports')
   @ApiOperation({ summary: 'Gelir-gider — Excel' })
   async incomeStatementXlsx(@Query(new ZodQuery(incomeQuerySchema)) q: z.infer<typeof incomeQuerySchema>, @Res({ passthrough: true }) res: Response) {
     const data = await this.reports.incomeStatement(q.from, q.to);
@@ -172,12 +177,14 @@ export class ReportsController {
   }
 
   @Get('payment-scores')
+  @Feature('reports')
   @ApiOperation({ summary: 'Ödeme skoru: site özeti, trend, kıyas ve kişi listesi' })
   paymentScores(@Query(new ZodQuery(z.object({ mask: maskParam }))) q: { mask: boolean }) {
     return this.reports.paymentScores(q.mask);
   }
 
   @Get('payment-scores/person/:personId')
+  @Feature('reports')
   @Roles('SITE_ADMIN', 'ACCOUNTANT', 'TECHNICIAN', 'SECURITY')
   @ApiOperation({ summary: 'Kişinin son ödeme skoru (kişi kartı rozeti)' })
   personScore(@Param('personId') personId: string) {
@@ -185,6 +192,7 @@ export class ReportsController {
   }
 
   @Post('payment-scores/recalculate')
+  @Feature('reports')
   @Roles('SITE_ADMIN')
   @HttpCode(200)
   @ApiOperation({ summary: 'Bu sitenin skorlarını şimdi yeniden hesapla' })

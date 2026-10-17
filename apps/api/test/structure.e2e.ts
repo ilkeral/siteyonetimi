@@ -10,6 +10,7 @@
  *   pnpm --filter @sy/api run test:structure
  */
 import { PrismaClient } from '@sy/db';
+import { cleanupTestOrganizations, testOrganization } from './helpers';
 import * as argon2 from 'argon2';
 
 const BASE = process.env.API_BASE ?? 'http://localhost:3101';
@@ -56,6 +57,7 @@ async function login(email: string): Promise<string> {
 
 async function cleanup() {
   await prisma.site.deleteMany({ where: { name: { in: [SITE_NAME, `${SITE_NAME} DİĞER`] } } });
+  await cleanupTestOrganizations(prisma);
   await prisma.user.deleteMany({ where: { email: { in: Object.values(EMAILS) } } });
 }
 
@@ -63,7 +65,7 @@ async function main(): Promise<void> {
   console.log('Site yapısı uçtan uca testi\n');
   await cleanup();
   // Zorunlu alan ayarları kapalı: test kişileri telefonsuz açılabilsin
-  const site = await prisma.site.create({ data: { name: SITE_NAME, settings: { create: { requireMobilePhone: false } } } });
+  const site = await prisma.site.create({ data: { name: SITE_NAME, organization: testOrganization(SITE_NAME), settings: { create: { requireMobilePhone: false } } } });
   siteId = site.id;
   const passwordHash = await argon2.hash('Test1234!');
   const admin = await prisma.user.create({ data: { email: EMAILS.admin, passwordHash, fullName: 'Yapı Admin' } });
@@ -150,7 +152,7 @@ async function main(): Promise<void> {
   // ------------------------------------------------------------ toplu aktarım
   const TC = '10000000146';
   // Başka sitede aynı TC'li bir kişi: eşleşmemeli (anlık görüntü siteye daraltılır)
-  const other = await prisma.site.create({ data: { name: `${SITE_NAME} DİĞER`, settings: { create: {} } } });
+  const other = await prisma.site.create({ data: { name: `${SITE_NAME} DİĞER`, organization: testOrganization(`${SITE_NAME} DİĞER`), settings: { create: {} } } });
   await prisma.person.create({ data: { siteId: other.id, firstName: 'Yabancı', lastName: 'Kişi', nationalId: TC } });
 
   const good = [
@@ -226,6 +228,7 @@ async function main(): Promise<void> {
   check('Dolu daireye ikinci malik reddediliyor', conflict.data.errors.some((e: any) => String(e.message).includes('zaten malik var')));
   check('Aktarım denetim kaydında', (await prisma.auditLog.count({ where: { siteId, action: 'IMPORT', entityType: 'Structure' } })) === 1);
   await prisma.site.delete({ where: { id: other.id } });
+  await cleanupTestOrganizations(prisma);
 
   await cleanup();
   console.log(`\n${passed} başarılı, ${failed} başarısız`);

@@ -10,6 +10,7 @@
  * Yeni bir tenant modeli eklenip RLS kuralı unutulursa ilk kontrol kırmızıya döner.
  */
 import { PrismaClient, TENANT_MODELS } from '@sy/db';
+import { cleanupTestOrganizations, testOrganization } from './helpers';
 
 const appUrl = process.env.APP_DATABASE_URL;
 if (!appUrl) {
@@ -45,6 +46,7 @@ async function asApp<T>(settings: { siteId?: string; bypass?: boolean }, run: (d
 
 async function cleanup() {
   await owner.site.deleteMany({ where: { name: { in: [SITE_A, SITE_B] } } });
+  await cleanupTestOrganizations(owner);
 }
 
 async function main() {
@@ -71,8 +73,8 @@ async function main() {
 
   // ---------------------------------------------------------- veri
   await cleanup();
-  const a = await owner.site.create({ data: { name: SITE_A, settings: { create: {} } } });
-  const b = await owner.site.create({ data: { name: SITE_B, settings: { create: {} } } });
+  const a = await owner.site.create({ data: { name: SITE_A, organization: testOrganization(SITE_A), settings: { create: {} } } });
+  const b = await owner.site.create({ data: { name: SITE_B, organization: testOrganization(SITE_B), settings: { create: {} } } });
   await owner.person.create({ data: { siteId: a.id, firstName: 'Rls', lastName: 'Akişi' } });
   await owner.person.create({ data: { siteId: b.id, firstName: 'Rls', lastName: 'Bkişi' } });
   const where = { firstName: 'Rls' };

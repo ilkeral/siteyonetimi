@@ -1334,3 +1334,22 @@ html[data-theme='dark'] .recharts-cartesian-grid line {
     overflow-wrap: anywhere;
   }
 }
+
+/* ---------------------------------------------------------------- abonelik (SaaS) */
+
+/* Pakette olmayan modül: menüde kilit simgesi */
+[dir] .sy-menu-lock {
+  font-size: 14px;
+  margin-left: auto;
+  opacity: 0.7;
+}
+
+[dir] .sy-menu-locked {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Panel üstündeki durum bandı (destek oturumu, salt okunur, deneme bitişi) */
+[dir] .sy-status-banner {
+  margin-bottom: 1rem;
+}

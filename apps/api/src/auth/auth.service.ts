@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as argon2 from 'argon2';
 import { createHash, randomBytes } from 'node:crypto';
-import type { LoginInput } from '@sy/shared';
+import { accessLevel, type AccessLevel, type LoginInput, type OrganizationStatus } from '@sy/shared';
 import { PRISMA, type ExtendedPrismaClient } from '../prisma/prisma.client';
 import { runWithoutTenant } from '../tenant/tenant.context';
 import type { AccessTokenPayload } from './auth.guard';
@@ -20,6 +20,18 @@ export interface SiteSummary {
   city: string | null;
   district: string | null;
   role: string;
+  /** Platform yöneticisinin destek erişimi bitişi (üyelikle girişte null) */
+  supportUntil: Date | null;
+  /** Sitenin müşteri hesabı ve abonelik durumu (her site bir müşteriye bağlıdır) */
+  subscription: {
+    organizationName: string;
+    status: OrganizationStatus;
+    planName: string | null;
+    access: AccessLevel;
+    reason: string | null;
+    daysLeft: number | null;
+    features: string[] | null;
+  };
 }
 
 @Injectable()
@@ -138,30 +150,77 @@ export class AuthService {
     return this.issueTokens(user.id, user.email, user.fullName, user.isSuperAdmin, meta);
   }
 
+  /**
+   * Kullanıcının girebildiği siteler + her sitenin abonelik durumu (uyarı
+   * bandı ve kilitli modüller için). Süper yönetici yalnızca üyesi olduğu ve
+   * geçerli destek erişimi açtığı siteleri görür — tüm müşterileri değil.
+   */
   async listSites(userId: string, isSuperAdmin: boolean): Promise<SiteSummary[]> {
     return runWithoutTenant(async () => {
-      if (isSuperAdmin) {
-        const sites = await this.db.site.findMany({
-          where: { isActive: true },
-          orderBy: { name: 'asc' },
-          select: { id: true, name: true, city: true, district: true },
-        });
-        return sites.map((s) => ({ ...s, role: 'SUPER_ADMIN' }));
+      const siteSelect = {
+        id: true,
+        name: true,
+        city: true,
+        district: true,
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            status: true,
+            trialEndsAt: true,
+            paidUntil: true,
+            plan: { select: { name: true, features: true } },
+          },
+        },
+      } as const;
+      const [memberships, support] = await Promise.all([
+        this.db.siteMembership.findMany({
+          where: { userId, isActive: true, site: { isActive: true } },
+          select: { role: true, site: { select: siteSelect } },
+          orderBy: { site: { name: 'asc' } },
+        }),
+        isSuperAdmin
+          ? this.db.supportAccess.findMany({
+              where: { userId, revokedAt: null, expiresAt: { gt: new Date() }, site: { isActive: true } },
+              select: { expiresAt: true, site: { select: siteSelect } },
+              orderBy: { expiresAt: 'desc' },
+            })
+          : [],
+      ]);
+
+      const now = new Date();
+      const summarize = (site: (typeof memberships)[number]['site'], role: string, supportUntil: Date | null): SiteSummary => {
+        const org = site.organization;
+        const access = accessLevel(org, now);
+        return {
+          id: site.id,
+          name: site.name,
+          city: site.city,
+          district: site.district,
+          role,
+          supportUntil,
+          subscription: {
+            organizationName: org.name,
+            status: org.status,
+            planName: org.plan?.name ?? null,
+            access: access.level,
+            reason: access.reason,
+            daysLeft: access.daysLeft,
+            // null = tüm modüller (paketsiz / özel sözleşme)
+            features: org.plan ? org.plan.features : null,
+          },
+        };
+      };
+
+      const result = memberships.map((m) => summarize(m.site, m.role, null));
+      const seen = new Set(result.map((s) => s.id));
+      for (const grant of support) {
+        if (!seen.has(grant.site.id)) {
+          result.push(summarize(grant.site, 'SUPER_ADMIN', grant.expiresAt));
+          seen.add(grant.site.id);
+        }
       }
-
-      const memberships = await this.db.siteMembership.findMany({
-        where: { userId, isActive: true, site: { isActive: true } },
-        include: { site: { select: { id: true, name: true, city: true, district: true } } },
-        orderBy: { site: { name: 'asc' } },
-      });
-
-      return memberships.map((m) => ({
-        id: m.site.id,
-        name: m.site.name,
-        city: m.site.city,
-        district: m.site.district,
-        role: m.role,
-      }));
+      return result;
     });
   }
 

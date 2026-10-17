@@ -17,9 +17,9 @@ export function temporaryPassword(): string {
 }
 
 /**
- * Yönetim tarafı: duyurular ve sakinlere portal erişimi.
+ * Yönetim tarafı: duyurular ve ikamet edenlere portal erişimi.
  *
- * Portal erişimi = sakin için `User` + bu sitede `RESIDENT` rolünde ve kişi
+ * Portal erişimi = ikamet eden için `User` + bu sitede `RESIDENT` rolünde ve kişi
  * kaydına bağlı (`personId`) `SiteMembership`. User ve SiteMembership global
  * tablolardır; sorgular her zaman açık `siteId` ile yapılır.
  */
@@ -84,7 +84,7 @@ export class PortalAdminService {
   /**
    * Erişim ver. E-posta yeni ise kullanıcı geçici parolayla açılır ve parola
    * **yalnızca bu yanıtta** döner (saklanmaz). E-posta başka sitede zaten
-   * sakin olarak kayıtlıysa mevcut hesaba bu site eklenir, parolaya dokunulmaz.
+   * ikamet eden olarak kayıtlıysa mevcut hesaba bu site eklenir, parolaya dokunulmaz.
    */
   async grant(personId: string, email: string) {
     const siteId = requireSiteId();
@@ -101,7 +101,7 @@ export class PortalAdminService {
         where: { userId: user.id, role: { not: 'RESIDENT' } },
         select: { id: true },
       });
-      // Personel hesabına sakin rolü eklemek yetki karışıklığı doğurur
+      // Personel hesabına ikamet eden rolü eklemek yetki karışıklığı doğurur
       if (staff || user.isSuperAdmin) {
         throw new ConflictException('Bu e-posta bir personel hesabına ait. Farklı bir e-posta kullanın.');
       }
@@ -109,7 +109,7 @@ export class PortalAdminService {
         where: { userId_siteId: { userId: user.id, siteId } },
       });
       if (sameSite && sameSite.personId && sameSite.personId !== personId && sameSite.isActive) {
-        throw new ConflictException('Bu e-posta bu sitede başka bir sakine bağlı');
+        throw new ConflictException('Bu e-posta bu sitede başka bir ikamet edene bağlı');
       }
     } else {
       password = temporaryPassword();
@@ -153,7 +153,7 @@ export class PortalAdminService {
     return { personId, enabled: false };
   }
 
-  /** Parolayı sıfırlar — yalnızca başka hiçbir yerde personel olmayan sakin hesabında */
+  /** Parolayı sıfırlar — yalnızca başka hiçbir yerde personel olmayan ikamet eden hesabında */
   async resetPassword(personId: string) {
     await this.requirePerson(personId);
     const membership = await this.membership(personId);

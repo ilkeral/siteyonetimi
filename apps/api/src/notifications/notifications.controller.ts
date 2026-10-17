@@ -13,7 +13,7 @@ import {
   type NotificationTemplateInput,
 } from '@sy/shared';
 import { NotificationsService } from './notifications.service';
-import { Roles } from '../common/decorators';
+import { Feature, Roles } from '../common/decorators';
 import { ZodBody, ZodQuery } from '../common/zod-validation.pipe';
 import { AuditService } from '../common/audit.service';
 
@@ -25,10 +25,11 @@ const sendSchema = z.object({ scheduledAt: z.coerce.date().optional().nullable()
 
 /**
  * Toplu bildirim kişisel veri ve maliyet içerir: yalnızca yönetici ve muhasebe.
- * Sakin tarafı (gelen kutusu, duyurular) Faz 5 portalında.
+ * İkamet eden tarafı (gelen kutusu, duyurular) Faz 5 portalında.
  */
 @ApiTags('İletişim')
 @Roles('SITE_ADMIN', 'ACCOUNTANT')
+@Feature('notifications')
 @Controller('notifications')
 export class NotificationsController {
   constructor(

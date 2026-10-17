@@ -15,7 +15,7 @@ interface Access {
 }
 
 /**
- * Kişi kartındaki "Sakin Portalı" kutusu. Geçici parola yalnızca üretildiği
+ * Kişi kartındaki "İkamet Eden Portalı" kutusu. Geçici parola yalnızca üretildiği
  * anda gösterilir; sunucuda düz metin saklanmaz, yeniden görüntülenemez.
  */
 export function PortalAccessBox({ personId, defaultEmail }: { personId: string; defaultEmail: string | null }) {
@@ -64,7 +64,7 @@ export function PortalAccessBox({ personId, defaultEmail }: { personId: string; 
     <div className="sy-portal-access">
       <div className="d-flex align-items-center mb-2">
         <i className="material-icons mr-2 text-muted">phonelink_lock</i>
-        <strong>Sakin Portalı</strong>
+        <strong>İkamet Eden Portalı</strong>
         <span className={`badge ml-2 ${data.enabled ? 'badge-success' : 'badge-light'}`}>
           {data.enabled ? 'Açık' : 'Kapalı'}
         </span>

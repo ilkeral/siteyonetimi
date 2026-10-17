@@ -22,6 +22,7 @@ import { ZodBody, ZodQuery } from '../common/zod-validation.pipe';
 import { toPage } from '../common/pagination';
 import { AuditService } from '../common/audit.service';
 import { StructureImportService } from './structure-import.service';
+import { EntitlementsService } from '../platform/entitlements.service';
 
 /** 'true' (varsayılan): aktifler · 'false': pasifler · 'all': hepsi */
 const activeParam = z.enum(['true', 'false', 'all']).default('true');
@@ -50,6 +51,7 @@ export class UnitsController {
     @Inject(PRISMA) private readonly db: ExtendedPrismaClient,
     private readonly audit: AuditService,
     private readonly structureImport: StructureImportService,
+    private readonly entitlements: EntitlementsService,
   ) {}
 
   // ------------------------------------------------------------ toplu aktarım
@@ -214,6 +216,7 @@ export class UnitsController {
   @ApiOperation({ summary: 'Daire ekle' })
   async createUnit(@Body(new ZodBody(unitSchema)) dto: z.infer<typeof unitSchema>) {
     await this.assertDoorFree(dto);
+    await this.entitlements.assertUnitCapacity(1);
     return this.db.unit.create({ data: { siteId: requireSiteId(), ...dto } as never });
   }
 
@@ -273,6 +276,7 @@ export class UnitsController {
     if (unit.block && !unit.block.isActive) {
       throw new ConflictException(`${unit.block.name} pasif. Önce bloğu etkinleştirin.`);
     }
+    if (!unit.isActive) await this.entitlements.assertUnitCapacity(1);
     await this.db.unit.update({ where: { id }, data: { isActive: true } });
     await this.audit.record({ action: 'UPDATE', entityType: 'Unit', entityId: id, after: { isActive: true } });
     return { id, isActive: true };

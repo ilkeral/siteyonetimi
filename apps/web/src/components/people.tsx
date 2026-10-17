@@ -399,7 +399,7 @@ export function VehicleForm({
   onSubmit: (payload: VehicleInput) => void;
   onCancel: () => void;
 }) {
-  const { value, errors, setErrors, set } = useForm({ plate: '', brand: '', model: '', color: '', hgsNumber: '', status: 'sakin' });
+  const { value, errors, setErrors, set } = useForm({ plate: '', brand: '', model: '', color: '', hgsNumber: '', status: 'ikamet eden' });
   return (
     <form
       noValidate
@@ -425,7 +425,7 @@ export function VehicleForm({
         </FormField>
         <FormField label="Durum" className="col-md-2 form-group">
           <select className="custom-select" value={value.status} onChange={(e) => set('status', e.target.value)}>
-            <option value="sakin">Sakin</option>
+            <option value="ikamet eden">İkamet Eden</option>
             <option value="misafir">Misafir</option>
             <option value="yasaklı">Yasaklı</option>
           </select>

@@ -69,7 +69,7 @@ export interface Audience {
 }
 
 export const AUDIENCE_GROUPS: { value: Audience['group']; label: string }[] = [
-  { value: 'ALL', label: 'Tüm sakinler' },
+  { value: 'ALL', label: 'Tüm ikamet edenler' },
   { value: 'OWNERS', label: 'Kat malikleri' },
   { value: 'TENANTS', label: 'Kiracılar' },
   { value: 'DEBTORS', label: 'Borçlular' },

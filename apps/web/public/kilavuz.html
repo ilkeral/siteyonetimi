@@ -1,0 +1,814 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Site Yönetim Kullanım Kılavuzu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Lato:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  /* Yerleşim: solda yapışkan içindekiler, sağda ~68 karakterlik okuma sütunu; dar ekranda tek sütun.
+     Renkler ürünün kendi panelinden: müşteri paneli mavisi, platform indigosu, PDF raporlarındaki lacivert. */
+  :root {
+    --bg: #f5f8fb;
+    --surface: #ffffff;
+    --ink: #112b4a;
+    --text: #2a3b4f;
+    --muted: #5e7085;
+    --line: #dbe4ee;
+    --accent: #2f7fbf;
+    --accent-soft: #e6f1fa;
+    --platform: #4f46e5;
+    --platform-soft: #eceafd;
+    --ok: #157347;
+    --ok-soft: #e1f3e8;
+    --warn: #9a5b06;
+    --warn-soft: #fbefd6;
+    --danger: #b42318;
+    --danger-soft: #fde7e5;
+    --code-bg: #eef3f8;
+    --font-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+    --font-body: 'Lato', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d1724;
+      --surface: #142233;
+      --ink: #e8f0f8;
+      --text: #c9d6e3;
+      --muted: #8fa3b8;
+      --line: #263a51;
+      --accent: #63aee6;
+      --accent-soft: #15314a;
+      --platform: #a5a0ff;
+      --platform-soft: #24234d;
+      --ok: #5fd08f;
+      --ok-soft: #15301f;
+      --warn: #f2b65a;
+      --warn-soft: #3a2a10;
+      --danger: #ff8a7f;
+      --danger-soft: #3d1a17;
+      --code-bg: #1b2d42;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1724;
+    --surface: #142233;
+    --ink: #e8f0f8;
+    --text: #c9d6e3;
+    --muted: #8fa3b8;
+    --line: #263a51;
+    --accent: #63aee6;
+    --accent-soft: #15314a;
+    --platform: #a5a0ff;
+    --platform-soft: #24234d;
+    --ok: #5fd08f;
+    --ok-soft: #15301f;
+    --warn: #f2b65a;
+    --warn-soft: #3a2a10;
+    --danger: #ff8a7f;
+    --danger-soft: #3d1a17;
+    --code-bg: #1b2d42;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.65;
+  }
+  a { color: var(--accent); text-underline-offset: 2px; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+
+  /* ---------------------------------------------------------------- başlık */
+  .masthead { border-bottom: 1px solid var(--line); background: var(--surface); }
+  .masthead .wrap { padding-block: 40px 32px; display: grid; gap: 20px; }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  h1, h2, h3 { font-family: var(--font-display); color: var(--ink); text-wrap: balance; line-height: 1.2; margin: 0; }
+  h1 { font-size: clamp(30px, 4.6vw, 46px); letter-spacing: -0.02em; }
+  h2 { font-size: 28px; letter-spacing: -0.01em; }
+  h3 { font-size: 19px; margin-top: 28px; }
+  .lede { max-width: 68ch; font-size: 18px; color: var(--text); margin: 0; }
+
+  .roles { display: flex; flex-wrap: wrap; gap: 8px; }
+  .role-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 12px; border-radius: 999px;
+    border: 1px solid var(--line); background: var(--bg);
+    color: var(--ink); text-decoration: none; font-weight: 700; font-size: 14px;
+  }
+  .role-chip:hover { border-color: var(--accent); }
+  .role-chip small { font-weight: 400; color: var(--muted); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+  .dot--platform { background: var(--platform); }
+  .dot--resident { background: var(--ok); }
+
+  /* ---------------------------------------------------------------- yerleşim */
+  .layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding-block: 32px 80px; }
+  .toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 20px); align-self: start; max-height: calc(100vh - 40px); overflow-y: auto; }
+  .toc h2 { font-size: 13px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 500; margin-bottom: 10px; }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; counter-reset: toc; }
+  .toc li:not(.group) { counter-increment: toc; }
+  .toc a {
+    display: grid; grid-template-columns: 26px 1fr; gap: 4px;
+    padding: 5px 8px; border-radius: 6px;
+    color: var(--text); text-decoration: none; font-size: 14px; line-height: 1.4;
+  }
+  .toc a::before { content: counter(toc, decimal-leading-zero); font-family: var(--font-mono); font-size: 11px; color: var(--muted); padding-top: 2px; }
+  .toc a:hover, .toc a.is-current { background: var(--accent-soft); color: var(--ink); }
+  .toc .group { margin: 14px 0 4px 8px; font-size: 11px; font-family: var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
+  main { min-width: 0; display: grid; gap: 64px; }
+  section { min-width: 0; scroll-margin-top: 20px; }
+  section > p, section > ul, section > ol, .prose { max-width: 68ch; }
+  .sec-head { display: grid; gap: 6px; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .sec-head .eyebrow { display: flex; gap: 10px; align-items: center; }
+  .where { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 16px; padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  strong { color: var(--ink); }
+
+  code, kbd, .path {
+    font-family: var(--font-mono); font-size: 0.86em;
+    background: var(--code-bg); color: var(--ink);
+    padding: 1px 6px; border-radius: 4px; white-space: nowrap;
+  }
+
+  /* Adım adım süreçler: sıra gerçek bilgi olduğu için numaralı */
+  .steps { list-style: none; padding: 0; margin: 0 0 18px; counter-reset: step; display: grid; gap: 10px; max-width: 72ch; }
+  .steps > li {
+    counter-increment: step; position: relative;
+    padding: 12px 14px 12px 52px; margin: 0;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  }
+  .steps > li::before {
+    content: counter(step); position: absolute; left: 14px; top: 12px;
+    width: 26px; height: 26px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--accent-soft); color: var(--accent);
+    font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+  }
+  .steps--platform > li::before { background: var(--platform-soft); color: var(--platform); }
+  .steps > li strong:first-child { display: block; margin-bottom: 2px; }
+
+  /* Notlar */
+  .note {
+    max-width: 72ch; padding: 12px 16px; border-radius: 10px; margin: 0 0 18px;
+    border: 1px solid var(--line); background: var(--surface);
+  }
+  .note p:last-child { margin-bottom: 0; }
+  .note-title { font-weight: 700; color: var(--ink); display: block; margin-bottom: 4px; }
+  .note--tip { background: var(--accent-soft); border-color: transparent; }
+  .note--warn { background: var(--warn-soft); border-color: transparent; }
+  .note--warn .note-title { color: var(--warn); }
+  .note--danger { background: var(--danger-soft); border-color: transparent; }
+  .note--danger .note-title { color: var(--danger); }
+  .note--platform { background: var(--platform-soft); border-color: transparent; }
+
+  /* Tablolar */
+  .table-wrap { overflow-x: auto; margin: 0 0 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; font-family: var(--font-mono); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); background: var(--bg); white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  td:first-child { font-weight: 700; color: var(--ink); white-space: nowrap; }
+  .yes { color: var(--ok); font-weight: 700; }
+  .no { color: var(--muted); }
+
+  .pill { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+  .pill--ok { background: var(--ok-soft); color: var(--ok); }
+  .pill--info { background: var(--accent-soft); color: var(--accent); }
+  .pill--warn { background: var(--warn-soft); color: var(--warn); }
+  .pill--danger { background: var(--danger-soft); color: var(--danger); }
+  .pill--muted { background: var(--code-bg); color: var(--muted); }
+
+  /* Akış (kanban kolonları, kayıp eşya yaşam döngüsü) */
+  .flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 18px; }
+  .flow span { padding: 5px 10px; border-radius: 6px; background: var(--surface); border: 1px solid var(--line); font-size: 14px; font-weight: 700; color: var(--ink); }
+  .flow i { font-style: normal; color: var(--muted); font-family: var(--font-mono); }
+
+  .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; max-width: 920px; }
+  .panel { padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); min-width: 0; }
+  .panel h4 { margin: 0 0 6px; font-family: var(--font-display); color: var(--ink); font-size: 16px; }
+  .panel p, .panel ul { margin-bottom: 0; font-size: 15px; }
+
+  .merge { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 18px; }
+  .merge code { white-space: nowrap; }
+
+  details { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 0 16px; max-width: 72ch; }
+  details + details { margin-top: 8px; }
+  summary { cursor: pointer; padding: 12px 0; font-weight: 700; color: var(--ink); list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; font-family: var(--font-mono); color: var(--muted); }
+  details[open] summary::after { content: "−"; }
+  details > div { padding-bottom: 14px; }
+
+  .foot { border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+  .foot .wrap { padding-block: 24px; }
+
+  @media (max-width: 980px) {
+    .layout { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+    .toc { position: static; max-height: none; border: 1px solid var(--line); border-radius: 10px; padding: 14px; background: var(--surface); }
+    .toc ol { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+    .toc .group { grid-column: 1 / -1; }
+  }
+  @media (max-width: 640px) {
+    .two { grid-template-columns: minmax(0, 1fr); }
+    h2 { font-size: 24px; }
+    .lede { font-size: 16.5px; }
+    .steps > li { padding-left: 46px; }
+    .steps > li::before { left: 10px; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
+  }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="wrap">
+    <span class="eyebrow">Kullanım kılavuzu · sürüm 0.8</span>
+    <h1>Site Yönetim Kullanım Kılavuzu</h1>
+    <p class="lede">Apartman ve site yönetimini tek panelden yürütmek için hazırlanmış platformun tamamı: platform yönetimi, firma ve abonelik, site kurulumu, finans, sayaç, iş takibi, bildirim, güvenlik, raporlar ve İkamet Eden Portalı. Rolünüzü seçin, ilgili bölümden başlayın.</p>
+    <nav class="roles" aria-label="Rolünüze göre başlayın">
+      <a class="role-chip" href="#platform"><span class="dot dot--platform"></span>Platform yöneticisi <small>müşteri ve paketler</small></a>
+      <a class="role-chip" href="#firma"><span class="dot"></span>Firma sahibi <small>abonelik ve siteler</small></a>
+      <a class="role-chip" href="#ilk-kurulum"><span class="dot"></span>Site yöneticisi <small>kurulum ve günlük işler</small></a>
+      <a class="role-chip" href="#finans"><span class="dot"></span>Muhasebe <small>aidat ve tahsilat</small></a>
+      <a class="role-chip" href="#teknik"><span class="dot"></span>Teknik ekip <small>iş takibi</small></a>
+      <a class="role-chip" href="#guvenlik"><span class="dot"></span>Güvenlik <small>ziyaretçi ve olay</small></a>
+      <a class="role-chip" href="#portal"><span class="dot dot--resident"></span>İkamet Eden <small>portal</small></a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap layout">
+  <aside class="toc" aria-label="İçindekiler">
+    <h2>İçindekiler</h2>
+    <ol id="toc">
+      <li class="group" aria-hidden="true">Temel</li>
+      <li><a href="#baslarken">Giriş ve ekranlar</a></li>
+      <li><a href="#roller">Roller ve yetkiler</a></li>
+      <li class="group" aria-hidden="true">Hesap yönetimi</li>
+      <li><a href="#platform">Platform yönetimi</a></li>
+      <li><a href="#abonelik">Paketler ve abonelik</a></li>
+      <li><a href="#firma">Firma ve abonelik sayfası</a></li>
+      <li class="group" aria-hidden="true">Site</li>
+      <li><a href="#ilk-kurulum">Yeni siteyi kurmak</a></li>
+      <li><a href="#site">Kişiler ve daireler</a></li>
+      <li><a href="#toplu-aktarim">Toplu kişi/daire aktarımı</a></li>
+      <li><a href="#finans">Finans</a></li>
+      <li><a href="#sayac">Sayaç işlemleri</a></li>
+      <li><a href="#teknik">Teknik (iş takibi)</a></li>
+      <li><a href="#iletisim">İletişim</a></li>
+      <li><a href="#guvenlik">Güvenlik</a></li>
+      <li><a href="#raporlar">Raporlar</a></li>
+      <li><a href="#parametreler">Parametreler</a></li>
+      <li class="group" aria-hidden="true">İkamet Eden</li>
+      <li><a href="#portal">İkamet Eden Portalı</a></li>
+      <li class="group" aria-hidden="true">Destek</li>
+      <li><a href="#kvkk">Kişisel veriler (KVKK)</a></li>
+      <li><a href="#sss">Sorun giderme</a></li>
+    </ol>
+  </aside>
+
+  <main>
+    <!-- ============================================================ GİRİŞ -->
+    <section id="baslarken">
+      <div class="sec-head">
+        <span class="eyebrow">Temel</span>
+        <h2>Giriş ve ekranlar</h2>
+      </div>
+      <p>Sistemde üç ayrı ekran vardır. Hangisine düşeceğinizi kullanıcı rolünüz belirler; giriş yaptıktan sonra doğru ekrana kendiliğinden yönlendirilirsiniz.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Ekran</th><th>Adres</th><th>Kimler kullanır</th></tr></thead>
+          <tbody>
+            <tr><td>Site paneli</td><td><span class="path">/giris</span> → <span class="path">/ozet</span></td><td>Site yöneticisi, muhasebe, teknik ekip, güvenlik, firma sahibi</td></tr>
+            <tr><td>İkamet Eden Portalı</td><td><span class="path">/giris</span> → <span class="path">/portal</span></td><td>Kat malikleri ve kiracılar</td></tr>
+            <tr><td>Platform paneli</td><td><span class="path">/platform/giris</span></td><td>Yalnızca platform (hizmet sağlayıcı) yöneticileri</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>Site seçimi</h3>
+      <p>Birden fazla sitede yetkiniz varsa girişten sonra bir site seçersiniz. Panelin üst çubuğundaki site adına tıklayarak istediğiniz zaman başka bir siteye geçebilirsiniz. Her site kendi verisini görür; bir sitedeki kişi, borç veya talep başka bir sitede görünmez.</p>
+      <h3>Panelin bölümleri</h3>
+      <ul>
+        <li><strong>Sol menü:</strong> modüller. Kilit simgeli bir modül, firmanızın paketinde yer almıyor demektir.</li>
+        <li><strong>Üst çubuk:</strong> site değiştirici, arama, açık/koyu tema düğmesi ve hesap menüsü (Firma ve abonelik, çıkış).</li>
+        <li><strong>Durum bandı:</strong> sayfanın en üstünde, abonelik veya destek oturumu hakkında bir uyarı varsa görünür.</li>
+      </ul>
+      <div class="note note--tip">
+        <span class="note-title">Güvenlik görevlisi girişi</span>
+        <p>Güvenlik rolündeki kullanıcı girişten sonra doğrudan <span class="path">/guvenlik</span> ekranına gelir; ikamet edenler İkamet Eden Portalına yönlendirilir.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ ROLLER -->
+    <section id="roller">
+      <div class="sec-head">
+        <span class="eyebrow">Temel</span>
+        <h2>Roller ve yetkiler</h2>
+      </div>
+      <p>Bir kullanıcının her sitede ayrı bir rolü olabilir. Arayüzde gizlenen düğmeler yalnızca kolaylık içindir; asıl yetki denetimi sunucuda yapılır, yetkisiz bir işlem her durumda reddedilir.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Rol</th><th>Ne yapar</th><th>Ne yapamaz</th></tr></thead>
+          <tbody>
+            <tr><td>Platform yöneticisi</td><td>Müşteri açar, paket ve abonelik yönetir, gerekçeli destek erişimi açar</td><td>Müşteri verisini destek erişimi olmadan göremez</td></tr>
+            <tr><td>Firma sahibi</td><td>Paket ve kullanımı görür, paket sınırı içinde yeni site açar; her sitesinde site yöneticisidir</td><td>Paketini kendisi değiştiremez</td></tr>
+            <tr><td>Site yöneticisi</td><td>Sitedeki her şey: kişi/daire, finans, parametreler, silme işlemleri, portal erişimi</td><td>—</td></tr>
+            <tr><td>Muhasebe</td><td>Kişi, aidat, tahsilat, gider, banka, raporlar, bildirimler, parametreler</td><td>Daire/blok tanımlama, toplu aktarım, silme işlemleri</td></tr>
+            <tr><td>Teknik ekip</td><td>Talepleri görür ve işler, faturasız masraf girer, sayaç okuması girer</td><td>Masrafı faturaya çevirme, finans ve raporlar</td></tr>
+            <tr><td>Güvenlik</td><td>Ziyaretçi, olay ve kayıp eşya kayıtları; talep açma; kişi kartına araç ekleme</td><td>Kayıt silme, finans</td></tr>
+            <tr><td>İkamet Eden</td><td>Kendi hesabı, ekstresi, online ödeme, talepleri, duyurular ve mesajlar</td><td>Panel ekranları; başka bir ikamet edenin verisi</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============================================================ PLATFORM -->
+    <section id="platform">
+      <div class="sec-head">
+        <span class="eyebrow"><span class="dot dot--platform"></span>Hesap yönetimi · platform yöneticisi</span>
+        <h2>Platform yönetimi</h2>
+        <span class="where">/platform</span>
+      </div>
+      <p>Platform paneli, hizmeti satan tarafın ekranıdır. Müşterileri (yönetim şirketleri ve site yönetimleri), paketleri ve abonelikleri buradan yönetirsiniz. Görünümü site panelinden bilerek farklıdır: koyu lacivert menü ve mor vurgu, hangi tarafta olduğunuzu her an belli eder.</p>
+      <div class="two">
+        <div class="panel"><h4>Özet</h4><p>Aylık tekrarlayan gelir (aktif müşterilerin paket fiyatı, KDV hariç), müşteri sayıları, deneme süresi biten ve ödemesi geciken müşteriler.</p></div>
+        <div class="panel"><h4>Müşteriler</h4><p>Arama ve durum filtresi; her müşterinin paketi, site ve daire kullanımı, deneme veya ödeme bitişi.</p></div>
+        <div class="panel"><h4>Paketler</h4><p>Fiyat, site ve daire sınırı, pakete dahil modüller.</p></div>
+        <div class="panel"><h4>Destek erişimi ve işlem günlüğü</h4><p>Açılan destek erişimleri ve platformda yapılan tüm işlemlerin kaydı.</p></div>
+      </div>
+
+      <h3>Yeni müşteri açmak</h3>
+      <ol class="steps steps--platform">
+        <li><strong>Müşteriler → Yeni Müşteri</strong>Müşteri adını, türünü (yönetim şirketi ya da site/apartman yönetimi), paketini ve deneme süresini girin. Deneme süresi 0 ise müşteri hemen aktif başlar.</li>
+        <li><strong>Hesap sahibini girin</strong>Ad soyad ve e-posta. Bu e-posta sistemde yoksa geçici parolayla yeni bir hesap açılır; varsa mevcut hesap müşterinin sahibi yapılır.</li>
+        <li><strong>İlk siteyi açın (isteğe bağlı)</strong>İşaretliyse site; gelir/gider kategorileri, kasa ve banka hesabı, departmanlar, aidat kalemleri ve bildirim şablonları hazır olarak açılır. Sahip bu siteye site yöneticisi olarak eklenir.</li>
+        <li><strong>Geçici parolayı iletin</strong>Parola yalnızca bu ekranda bir kez gösterilir ve hiçbir yerde saklanmaz. Kopyalayıp müşteriye güvenli bir kanaldan iletin; ilk girişte değiştirmesini isteyin.</li>
+      </ol>
+
+      <h3>Müşteri kartı</h3>
+      <ul>
+        <li><strong>Abonelik ve bilgiler:</strong> durum, paket, deneme bitişi, ödenen süre bitişi, vergi ve iletişim bilgileri, yalnızca platformun gördüğü not.</li>
+        <li><strong>Kullanım:</strong> site ve aktif daire sayısının paket sınırına göre doluluğu.</li>
+        <li><strong>Hesap sahipleri:</strong> sahip girişini kaybettiyse <em>Parola Sıfırla</em> yeni bir geçici parola üretir ve açık oturumlarını kapatır.</li>
+        <li><strong>Siteler:</strong> yeni site açma, siteyi pasife alma veya yeniden etkinleştirme, destek erişimi.</li>
+        <li><strong>İşlem geçmişi:</strong> müşteride yapılan değişiklikler, kimin ne zaman yaptığıyla birlikte.</li>
+      </ul>
+
+      <h3>Destek erişimi</h3>
+      <p>Platform yöneticisi müşterilerin iş verisini (kişiler, borçlar, talepler) kendiliğinden göremez. Bir sorunu incelemek için o siteye süreli bir erişim açmanız gerekir.</p>
+      <ol class="steps steps--platform">
+        <li><strong>Müşteri kartı → Siteler → Destek Erişimi</strong>İlgili sitenin satırındaki düğmeye tıklayın.</li>
+        <li><strong>Gerekçe ve süre</strong>Destek talebi numarası ve konu (en az 10 karakter); süre 15 dakika ile 4 saat arasında seçilir.</li>
+        <li><strong>Siteye Gir</strong>Site paneli açılır. Sayfanın üstünde kırmızı <em>Destek oturumu</em> bandı ve erişimin bitiş zamanı görünür.</li>
+        <li><strong>Platforma dönün</strong>İşiniz bitince banttaki <em>Platforma dön</em> düğmesini kullanın; erişimi Destek Erişimi sayfasından erken kapatabilirsiniz.</li>
+      </ol>
+      <div class="note note--platform">
+        <span class="note-title">Müşteri her erişimi görür</span>
+        <p>Açılan her destek erişimi, gerekçesi ve süresiyle birlikte müşterinin kendi işlem günlüğüne de yazılır.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ ABONELİK -->
+    <section id="abonelik">
+      <div class="sec-head">
+        <span class="eyebrow">Hesap yönetimi</span>
+        <h2>Paketler ve abonelik</h2>
+      </div>
+      <p>Her site bir müşteriye bağlıdır ve müşterinin paketine tabidir. Paket üç şeyi belirler: kaç site açılabileceği, tüm sitelerde toplam kaç aktif daire olabileceği ve hangi modüllerin açık olduğu.</p>
+      <h3>Pakete bağlı modüller</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Modül</th><th>Menüde</th></tr></thead>
+          <tbody>
+            <tr><td>İş Takibi</td><td>Teknik</td></tr>
+            <tr><td>Sayaç Paylaşımı</td><td>Sayaç İşlemleri</td></tr>
+            <tr><td>Toplu Bildirim (SMS / e-posta)</td><td>İletişim → Bildirimler, Yeni Bildirim, Şablonlar</td></tr>
+            <tr><td>İkamet Eden Portalı ve Online Ödeme</td><td>İkamet Eden Portalı, İletişim → Duyurular, kişi kartında portal erişimi</td></tr>
+            <tr><td>Gelişmiş Raporlar</td><td>Raporlar → Gelir-Gider, Ödeme Skoru, tüm Excel çıktıları</td></tr>
+            <tr><td>Güvenlik</td><td>Güvenlik</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Kişiler ve daireler, finans, aidat, cari ekstre ve borç yaşlandırma (ekran ve PDF) her pakette vardır. Paketi olmayan müşteri özel sözleşmeli sayılır: sınır yoktur, bütün modüller açıktır.</p>
+
+      <h3>Abonelik durumları</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Durum</th><th>Müşteri ne yaşar</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill pill--info">Deneme</span></td><td>Tam erişim. Bitişe 7 gün kala panelde uyarı bandı çıkar; süre dolunca kayıtlar salt okunur olur.</td></tr>
+            <tr><td><span class="pill pill--ok">Aktif</span></td><td>Tam erişim. Ödenen süre bitişi geçerse 7 gün tolerans tanınır, sonra salt okunur olur.</td></tr>
+            <tr><td><span class="pill pill--warn">Ödeme Gecikti</span></td><td>Salt okunur: veriler görülür, rapor alınır; yeni kayıt ve değişiklik yapılamaz.</td></tr>
+            <tr><td><span class="pill pill--danger">Askıda</span></td><td>Site paneline ve portala giriş yok.</td></tr>
+            <tr><td><span class="pill pill--muted">İptal</span></td><td>Sözleşme bitti; giriş yok.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note note--warn">
+        <span class="note-title">Salt okunur kipte ikamet eden ödemeleri de durur</span>
+        <p>Abonelik salt okunurken ikamet edenlerin online aidat ödemesi de dahil hiçbir kayıt oluşturulamaz. Ödeme alındığında abonelik durumunu ve ödenen süre bitişini müşteri kartından güncelleyin.</p>
+      </div>
+      <p>Sınır dolduğunda yeni daire, daire etkinleştirme, toplu aktarım veya yeni site açma reddedilir ve "paketinizi yükseltin" mesajı gösterilir.</p>
+    </section>
+
+    <!-- ============================================================ FİRMA -->
+    <section id="firma">
+      <div class="sec-head">
+        <span class="eyebrow">Hesap yönetimi · firma sahibi</span>
+        <h2>Firma ve abonelik sayfası</h2>
+        <span class="where">Hesap menüsü → Firma ve abonelik · /firma</span>
+      </div>
+      <p>Müşteri hesabının sahibi (örneğin bir yönetim şirketinin yetkilisi) bu sayfada paketini, deneme veya abonelik bitişini, site ve daire kullanımını ve pakete dahil modülleri görür.</p>
+      <ol class="steps">
+        <li><strong>Yeni Site</strong>Site adı, il ve ilçe girin. Paket sınırı izin veriyorsa site hazır tanımlarla açılır ve siz o sitede site yöneticisi olursunuz.</li>
+        <li><strong>Bu siteye geç</strong>Listeden bir siteye tıklayarak o sitenin paneline geçin.</li>
+      </ol>
+      <p>Paket değişikliği için hizmet sağlayıcınızla iletişime geçin; paketi platform yöneticisi günceller ve değişiklik hemen geçerli olur.</p>
+    </section>
+
+    <!-- ============================================================ İLK KURULUM -->
+    <section id="ilk-kurulum">
+      <div class="sec-head">
+        <span class="eyebrow">Site · site yöneticisi</span>
+        <h2>Yeni siteyi kurmak</h2>
+      </div>
+      <p>Yeni açılan bir sitede kategoriler, kasa ve banka hesabı hazırdır. Siteyi kullanıma almak için şu sırayı izleyin; her adım bir sonrakinin dayanağıdır.</p>
+      <ol class="steps">
+        <li><strong>Parametreleri ayarlayın</strong>Tanımlar → Parametreler: aidat dağıtım yöntemi, borcun kime yazılacağı, gecikme tazminatı, zorunlu alanlar. <a href="#parametreler">Ayrıntılar</a></li>
+        <li><strong>Blokları ve daireleri tanımlayın</strong>Site → Daireler: önce blokları, sonra daireleri ekleyin. m² ve arsa payı, aidat dağıtımında kullanılır.</li>
+        <li><strong>Kişileri ve daire ilişkilerini girin</strong>Çok sayıda daire varsa Excel listesini <a href="#toplu-aktarim">toplu aktarım</a> ile tek seferde yükleyin.</li>
+        <li><strong>Banka hesabını düzenleyin</strong>Hazır gelen banka hesabının adını ve IBAN'ını gerçek bilgilerle değiştirin. IBAN bildirimlerde <code>{{iban}}</code> alanına yazılır.</li>
+        <li><strong>İlk aidat tahakkukunu yapın</strong>Finans → Aidat Tahakkuku. <a href="#finans">Ayrıntılar</a></li>
+        <li><strong>İkamet edenlere portal erişimi verin</strong>Kişi kartı → Genel Bilgiler → portal erişimi. İkamet eden borcunu görür ve online öder.</li>
+      </ol>
+    </section>
+
+    <!-- ============================================================ SİTE -->
+    <section id="site">
+      <div class="sec-head">
+        <span class="eyebrow">Site</span>
+        <h2>Kişiler ve daireler</h2>
+        <span class="where">Site → Kişiler · Daireler · Toplu Aktarım</span>
+      </div>
+      <h3>Kişiler</h3>
+      <p>Kişi listesinde ad, telefon ve harf filtresiyle arama yapılır; <em>Yalnızca borçlular</em> kutusu bakiyesi borç olanları süzer. <strong>Yeni Kişi</strong> formunda kişiyle birlikte cari hesabı da açılır; isterseniz aynı adımda bir daireye malik veya kiracı olarak bağlarsınız.</p>
+      <h3>Kişi kartı</h3>
+      <div class="two">
+        <div class="panel"><h4>Genel Bilgiler</h4><p>İletişim bilgileri, düzenleme, portal erişimi verme ve sıfırlama.</p></div>
+        <div class="panel"><h4>Daireler</h4><p>Kişinin malik veya kiracı olduğu daireler, giriş ve çıkış tarihleri. <em>Daireye Bağla</em> ve <em>Çıkış Ver</em> buradadır.</p></div>
+        <div class="panel"><h4>Araçlar</h4><p>Plaka, marka, durum (ikamet eden, misafir, yasaklı). Güvenlik ziyaretçi girişinde plakayı buradan tanır.</p></div>
+        <div class="panel"><h4>Cari Hesap, Talepler, İletişim Geçmişi</h4><p>Açık borçlar ve ekstre bağlantısı, kişinin talepleri, gönderilen bildirimler.</p></div>
+      </div>
+      <div class="note note--warn">
+        <span class="note-title">Taşınan kişiye çıkış verin, silmeyin</span>
+        <p>Geçmiş dönemlerin aidatı o dönemde oturan kişiye yazılır. Bu yüzden daire ilişkisi silinmez; kişi taşındığında kişi kartından <em>Çıkış Ver</em> ile çıkış tarihi girilir. Cari hareketi olan bir kişi silinmek istendiğinde de silinmez, pasife alınır.</p>
+      </div>
+      <h3>Daireler ve bloklar</h3>
+      <ul>
+        <li>Daireler blok ve numara sırasıyla listelenir (1, 2, … 10, 11). Aynı blokta aynı daire numarası iki kez açılamaz.</li>
+        <li><strong>Pasife alma:</strong> içinde oturan biri varsa daire pasife alınamaz; önce oturanlara çıkış verin. Pasif daireye aidat ve sayaç tahakkuku yapılmaz. Pasif daireler <em>Pasif Daireler</em> sekmesinde listelenir ve yeniden etkinleştirilebilir.</li>
+        <li><strong>Bloklar:</strong> <em>Bloklar</em> düğmesiyle blok adını değiştirebilir, boş bloğu pasife alabilirsiniz. İçinde aktif daire olan blok pasife alınamaz.</li>
+      </ul>
+    </section>
+
+    <!-- ============================================================ TOPLU AKTARIM -->
+    <section id="toplu-aktarim">
+      <div class="sec-head">
+        <span class="eyebrow">Site · site yöneticisi</span>
+        <h2>Toplu kişi/daire aktarımı</h2>
+        <span class="where">Site → Toplu Aktarım · /site/ice-aktar</span>
+      </div>
+      <p>Bloklar, daireler, malikler ve kiracılar tek bir Excel listesinden aktarılır. Her satır bir daireyi ve isteğe bağlı olarak o dairedeki bir kişiyi temsil eder; malik ve kiracı aynı daire için iki ayrı satırdır.</p>
+      <ol class="steps">
+        <li><strong>Şablonu indirin</strong><em>Örnek Şablon</em> düğmesi doldurulacak bir CSV verir.</li>
+        <li><strong>Listeyi yapıştırın</strong>Excel'de başlık satırıyla birlikte seçip kopyalayın ve alana yapıştırın ya da CSV dosyası seçin. Türkçe Excel'in kaydettiği dosyalarda Türkçe karakterler bozulmaz.</li>
+        <li><strong>Önizleyin</strong>Satır satır ne yapılacağı (yeni ya da mevcut daire, kişi, daire ilişkisi) ve hatalar satır numarasıyla gösterilir. Önizleme hiçbir kayıt oluşturmaz.</li>
+        <li><strong>Aktarın</strong>Liste ya tamamen aktarılır ya hiç aktarılmaz. Tek bir hatalı satır varsa aktarım başlamaz; listeyi düzeltip yeniden önizleyin.</li>
+      </ol>
+      <h3>Tanınan kolonlar</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Kolon</th><th>Açıklama</th></tr></thead>
+          <tbody>
+            <tr><td>Daire No</td><td>Tek zorunlu kolon</td></tr>
+            <tr><td>Blok</td><td>"A" ile "A Blok" aynı blok sayılır; yoksa yeni blok açılır</td></tr>
+            <tr><td>Kat · m² · Arsa Payı</td><td>Sayılar Türkçe biçimde yazılabilir: <code>110,5</code></td></tr>
+            <tr><td>Ad · Soyad</td><td>Ya da tek kolonda "Ad Soyad"; son kelime soyad sayılır</td></tr>
+            <tr><td>Sıfat</td><td>Malik veya Kiracı; boşsa Malik</td></tr>
+            <tr><td>Cep Telefonu · E-posta</td><td>Telefon 5XX ile başlayan cep numarası olmalı</td></tr>
+            <tr><td>TC Kimlik No</td><td>Sağlama hanesi denetlenir</td></tr>
+            <tr><td>Giriş Tarihi</td><td>GG.AA.YYYY; boşsa bugün</td></tr>
+            <tr><td>Banka Ödeme Kodu</td><td>Banka hareketlerinin otomatik eşleşmesi için</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note note--tip">
+        <span class="note-title">Aynı listeyi tekrar yüklemek güvenlidir</span>
+        <p>Kişiler TC kimlik no ya da telefon ve ad ile mevcut kayıtlarla eşleşir; yalnızca adla eşleştirilmez, çünkü iki farklı "Ahmet Yılmaz" olabilir. Mevcut daire ve kişi bilgileri değiştirilmez, yalnızca eksikler eklenir.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ FİNANS -->
+    <section id="finans">
+      <div class="sec-head">
+        <span class="eyebrow">Site · site yöneticisi, muhasebe</span>
+        <h2>Finans</h2>
+        <span class="where">Finans → Cari Hesaplar · Aidat Tahakkuku · Tahsilat · Gider Faturası · Banka Hareketleri</span>
+      </div>
+      <p>Finans, çift taraflı kayıtla çalışan bir cari hesap defteridir. Her kişinin, tedarikçinin, kasanın ve bankanın bir cari hesabı vardır. Bakiye, hareketlerin toplamından her seferinde yeniden hesaplanır.</p>
+      <div class="note note--danger">
+        <span class="note-title">İşlenen evrak değiştirilmez</span>
+        <p>Tahakkuk, tahsilat veya fatura işlendikten sonra düzenlenemez; düzeltme iptal edip yeniden oluşturarak yapılır, böylece geçmiş her zaman izlenebilir kalır. Panelde şu an aidat tahakkuku (toplu) iptal edilebilir ve sayaç dağıtımı geri alınabilir. Tek bir tahsilatı veya gider faturasını iptal eden ekran henüz yoktur.</p>
+      </div>
+
+      <h3>Aidat tahakkuku</h3>
+      <ol class="steps">
+        <li><strong>Dönem ve son ödeme tarihi</strong>Tahakkukun ait olduğu ayı ve son ödeme tarihini seçin.</li>
+        <li><strong>Kalemleri ekleyin</strong>Aidat, demirbaş, yakıt avansı gibi kalemler. Her kalem daire başına sabit tutar ya da dairelere dağıtılacak toplam tutar olarak girilir; toplam tutarda dağıtım yöntemi seçilir: eşit, m², arsa payı veya hisse oranı.</li>
+        <li><strong>Önizleyin</strong>Her dairenin payı ve borcun yazılacağı kişi gösterilir. Paylar kuruşu kuruşuna toplam tutara eşittir; artan kuruşlar en büyük kalan yöntemiyle dağıtılır.</li>
+        <li><strong>Tahakkuku Oluştur</strong>Borçlar carilere işlenir. Yanlış bir tahakkuk, altındaki listeden toplu olarak iptal edilebilir.</li>
+      </ol>
+      <p>Borcun kime yazılacağını parametrelerdeki kural belirler: oturana (kiracı varsa kiracıya) ya da kat malikine. Geçmiş bir dönemin tahakkuku o dönemde oturan kişiye yazılır.</p>
+
+      <h3>Tahsilat ve gider</h3>
+      <ul>
+        <li><strong>Tahsilat:</strong> kişiyi ve kasa ya da banka hesabını seçin, tutarı girin. Tahsilat kişinin en eski borcundan başlayarak düşülür.</li>
+        <li><strong>Gider faturası:</strong> tedarikçiyi ve gider kategorisini seçin. Ödeme yapıldığında fatura kapanır.</li>
+      </ul>
+
+      <h3>Banka hareketleri</h3>
+      <ol class="steps">
+        <li><strong>Ekstre Yükle</strong>Bankadan aldığınız hareket listesini yükleyin.</li>
+        <li><strong>Otomatik eşleştirme</strong>Açıklamasında banka ödeme kodu geçen hareketler ilgili kişinin tahsilatı olarak işlenir (parametrelerde açıksa).</li>
+        <li><strong>Kalanları elle bağlayın</strong>Eşleşmeyen hareketi bir cariye bağlayın ya da yok sayın.</li>
+      </ol>
+
+      <h3>Gecikme tazminatı</h3>
+      <p>Oran ve yöntem parametrelerden ayarlanır. Aylık yöntemde KMK m.20 gereği oran en fazla %5'tir ve başlayan her ay tam sayılır; günlük yöntemde oran, 30 günde aylık %5'i aşamaz. Sayaç dağıtımında tazminat uygulanıp uygulanmayacağı her dağıtım için ayrıca seçilir.</p>
+      <div class="note note--warn">
+        <span class="note-title">Bilinen eksikler</span>
+        <p>Tazminatı hesaplayıp carilere işleyen ve tek bir evrakı iptal eden işlemler sistemde hazırdır, ancak panelde onları başlatan ekranlar henüz yoktur.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ SAYAÇ -->
+    <section id="sayac">
+      <div class="sec-head">
+        <span class="eyebrow">Site · paket modülü</span>
+        <h2>Sayaç işlemleri</h2>
+        <span class="where">Sayaç İşlemleri → Dağıtımlar · Yeni Dağıtım</span>
+      </div>
+      <p>Merkezi ısınma, sıcak su ve soğuk su faturası dairelere sayaç okumalarına göre paylaştırılır. Her dönem için tek bir dağıtım yapılır ve dört adımlı bir sihirbazla ilerlenir.</p>
+      <ol class="steps">
+        <li><strong>Evrak Bilgileri</strong>Dönem, son ödeme tarihi, tazminat uygulanıp uygulanmayacağı.</li>
+        <li><strong>Parametreler ve Ana Sayaçlar</strong>Yakıt ve su faturası tutarları, ana sayaç okumaları, ısınma payının sabit ve değişken oranı, sıcak su için soğuk su giriş sıcaklığı.</li>
+        <li><strong>Daire Okumaları</strong>Her dairenin ilk ve son okuması. Liste Excel'den yapıştırılabilir ya da CSV yüklenebilir. Önceki okuma, son onaylı dönemden önerilir.</li>
+        <li><strong>Önizleme ve Onay</strong>Daire başına tutarlar. Okuması olmayan daire, ortalamaya göre tahmin edilir ve önizlemede işaretlenir. Onaylanınca borçlar carilere işlenir.</li>
+      </ol>
+      <p>Onaylı bir dağıtım değiştirilmez. Hata varsa <em>Geri Al</em> ile evraklar iptal edilir ve dağıtım taslağa döner. Sonraki dönemin dağıtımı onaylıysa geri alma yapılamaz, çünkü onun önceki okumaları bu dönemden gelir.</p>
+    </section>
+
+    <!-- ============================================================ TEKNİK -->
+    <section id="teknik">
+      <div class="sec-head">
+        <span class="eyebrow">Site · paket modülü</span>
+        <h2>Teknik (iş takibi)</h2>
+        <span class="where">Teknik → İş Takibi · Talep Listesi · Yeni Talep</span>
+      </div>
+      <p>Arıza, şikayet ve istekler bir pano üzerinde izlenir. Kartları sürükleyerek kolonlar arasında taşırsınız; kolon içindeki sıra da korunur.</p>
+      <div class="flow" aria-label="Pano kolonları">
+        <span>Beklemede</span><i>→</i><span>İnceleniyor</span><i>→</i><span>Cevap Bekleniyor</span><i>→</i><span>İletildi</span><i>→</i><span>Planlandı</span><i>→</i><span>Çalışılıyor</span><i>→</i><span>Ertelendi</span><i>→</i><span>Tamamlandı</span>
+      </div>
+      <ul>
+        <li><strong>Yeni Talep:</strong> konu, açıklama, talep tipi (arıza, şikayet, soru, öneri, istek), öncelik, geliş kanalı, daire ve kişi, departman, sorumlu ve hedef tarih. Daire seçilince oturan kişi önerilir.</li>
+        <li><strong>Talep kartı:</strong> yorumlar (ikamet edene görünen ve yalnızca personele açık), masraflar, işlem geçmişi ve memnuniyet anketi.</li>
+        <li><strong>Masraf:</strong> teknik ekip faturasız masraf girer; site yöneticisi veya muhasebe masrafı gider faturasına çevirir.</li>
+        <li>Panoda tamamlananlar son 30 gün gösterilir; tamamı <em>Talep Listesi</em>'ndedir. Hedef tarihi geçen talep gecikmiş olarak işaretlenir.</li>
+      </ul>
+    </section>
+
+    <!-- ============================================================ İLETİŞİM -->
+    <section id="iletisim">
+      <div class="sec-head">
+        <span class="eyebrow">Site · paket modülü</span>
+        <h2>İletişim</h2>
+        <span class="where">İletişim → Bildirimler · Yeni Bildirim · Şablonlar · Duyurular</span>
+      </div>
+      <h3>Toplu bildirim</h3>
+      <ol class="steps">
+        <li><strong>Kanal ve şablon</strong>E-posta, SMS, WhatsApp veya sesli mesaj. Hazır bir şablonla başlayabilirsiniz.</li>
+        <li><strong>Hedef kitle</strong>Tümü, malikler, kiracılar, borçlular ya da kişi kişi seçim; blok, borç aralığı ve yalnızca vadesi geçmiş borçlular filtresiyle daraltılabilir. Kitle gönderim anında belirlenir: zamanlanmış "borçlulara" bildirimi, o anki borçlulara gider.</li>
+        <li><strong>Önizleyin</strong>Kişiye özel birleştirilmiş metin, alıcı sayısı ve SMS'in kaç parça tutacağı gösterilir. Telefonu ya da e-postası olmayan kişiler gerekçesiyle listeden ayıklanır.</li>
+        <li><strong>Gönderin ya da zamanlayın</strong>Gönderim kuyrukta yürür; başarısız olanlar geçici bir hataysa yeniden denenir. Kampanya ekranında teslim durumu izlenir.</li>
+      </ol>
+      <h3>Birleştirme alanları</h3>
+      <p>Metne yazdığınız alanlar her kişi için gerçek değerle doldurulur:</p>
+      <div class="merge">
+        <code>{{adSoyad}}</code><code>{{daireNo}}</code><code>{{blokAdi}}</code><code>{{siteAdi}}</code><code>{{donem}}</code><code>{{borcTutari}}</code><code>{{sonOdemeTarihi}}</code><code>{{gecikmeTazminati}}</code><code>{{toplamBorc}}</code><code>{{odemeLinki}}</code><code>{{odemeKodu}}</code><code>{{iban}}</code>
+      </div>
+      <p><code>{{odemeLinki}}</code> ikamet edeni portalın online ödeme sayfasına götürür.</p>
+      <h3>Duyurular</h3>
+      <p>Duyurular İkamet Eden Portalında yayınlanır. Yayın ve bitiş tarihi verilebilir, önemli duyuru başa sabitlenebilir.</p>
+    </section>
+
+    <!-- ============================================================ GÜVENLİK -->
+    <section id="guvenlik">
+      <div class="sec-head">
+        <span class="eyebrow">Site · paket modülü · güvenlik görevlisi</span>
+        <h2>Güvenlik</h2>
+        <span class="where">Güvenlik → Özet · Ziyaretçiler · Olay Kayıtları · Kayıp Eşya</span>
+      </div>
+      <h3>Ziyaretçiler</h3>
+      <ul>
+        <li><strong>Giriş:</strong> ad, plaka, telefon, isteğe bağlı TC kimlik no, ziyaret edilen daire veya kişi ve ziyaret amacı. Daire seçilince oturan kişi önerilir.</li>
+        <li><strong>Plaka:</strong> nasıl yazılırsa yazılsın tek biçimde saklanır (<code>34 ABC 123</code>) ve sitedeki araçlarla eşleştirilir. "Yasaklı" kayıtlı bir plaka girişte kırmızı uyarı verir; giriş yine kaydedilir.</li>
+        <li><strong>Çıkış:</strong> listeden <em>Çıkış</em> düğmesiyle. 12 saati aşan açık ziyaret "çıkışı unutulmuş olabilir" diye işaretlenir.</li>
+        <li><strong>TC kimlik no</strong> hiçbir ekranda açık görünmez (<code>100******46</code>) ve yalnızca 11 hanenin tamamıyla aranabilir.</li>
+      </ul>
+      <h3>Olay kayıtları</h3>
+      <p>Hırsızlık, hasar, gürültü, izinsiz giriş, yangın, kaza ve teknik olaylar; önem derecesi, görevli, daire ve kişiyle birlikte. Kaydı yalnızca açan görevli ya da site yöneticisi düzenleyebilir, silme yalnızca site yöneticisindedir.</p>
+      <h3>Kayıp eşya</h3>
+      <div class="flow" aria-label="Kayıp eşya yaşam döngüsü">
+        <span>Kayıp Bildirimi</span><i>→</i><span>Emanette</span><i>→</i><span>Sahibi Çıktı</span><i>→</i><span>Teslim Edildi</span>
+      </div>
+      <ul>
+        <li>Bulunan eşya doğrudan <em>Emanette</em> olarak açılabilir; emanetçi zorunludur.</li>
+        <li>Talep eden kişi sahibi değilse <em>Talebi reddet</em> ile eşya emanete döner ve talep edenin bilgisi silinir.</li>
+        <li>Emanetteki eşya en az 30 gün sonra <em>İmha / bağış</em> ile kapatılabilir; sahibi çıkmış eşya imha edilemez.</li>
+      </ul>
+    </section>
+
+    <!-- ============================================================ RAPORLAR -->
+    <section id="raporlar">
+      <div class="sec-head">
+        <span class="eyebrow">Site · site yöneticisi, muhasebe</span>
+        <h2>Raporlar</h2>
+        <span class="where">Raporlar → Cari Ekstre · Borç Yaşlandırma · Gelir-Gider · Ödeme Skoru</span>
+      </div>
+      <p>Her rapor önce ekranda gösterilir; ardından PDF veya Excel olarak indirilebilir ya da tarayıcıdan yazdırılabilir. Excel'de tutarlar sayı olarak gelir, toplanıp süzülebilir.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Rapor</th><th>Ne gösterir</th></tr></thead>
+          <tbody>
+            <tr><td>Cari Ekstre</td><td>Seçilen carilerin tarih aralığındaki hareketleri, devir ve kapanış bakiyesi; borç ya da alacak eşiğiyle süzme</td></tr>
+            <tr><td>Borç Yaşlandırma</td><td>Açık borçların vadeden bu yana geçen güne göre dağılımı: vadesi gelmemiş, 0–30, 31–60, 61–90, 90+ gün</td></tr>
+            <tr><td>Gelir-Gider</td><td>Kategori ve aya göre gelir ve gider, dönem net sonucu; kasa ve bankanın ay başı ve ay sonu bakiyeleri (virmanlar hariç). En fazla 24 ay</td></tr>
+            <tr><td>Ödeme Skoru</td><td>Son 6 ayın tahsilat oranı, ödeme zamanlaması, tazminat yükü ve dijital ödeme payından 0–5 skor; site trendi ve kişi listesi. Her gece yeniden hesaplanır</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Gelir, tahakkuk edildiği ayda sayılır; tahsil edilip edilmediği ayrıca kasa ve banka tablosunda görülür.</p>
+    </section>
+
+    <!-- ============================================================ PARAMETRELER -->
+    <section id="parametreler">
+      <div class="sec-head">
+        <span class="eyebrow">Site · site yöneticisi, muhasebe</span>
+        <h2>Parametreler</h2>
+        <span class="where">Tanımlar → Parametreler</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Bölüm</th><th>Ayarlar</th></tr></thead>
+          <tbody>
+            <tr><td>Aidat</td><td>Dağıtım yöntemi (eşit, m², arsa payı, hisse oranı); borcun oturana mı malike mi yazılacağı</td></tr>
+            <tr><td>Gecikme tazminatı</td><td>Uygulanıp uygulanmayacağı, aylık ya da günlük yöntem, oran, vadeden sonraki tolerans günü</td></tr>
+            <tr><td>Zorunlu alanlar</td><td>Kişide cep telefonu, e-posta, TC kimlik no; ziyaretçide TC kimlik no</td></tr>
+            <tr><td>Bildirim</td><td>E-postada görünen gönderen adı, her bildirimin sonuna eklenen alt bilgi</td></tr>
+            <tr><td>Banka</td><td>Banka hareketlerinin ödeme koduyla otomatik eşleştirilmesi</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Değişiklikler geçmiş evrakları değiştirmez; sonraki tahakkuk ve tazminat hesaplarından itibaren uygulanır.</p>
+    </section>
+
+    <!-- ============================================================ PORTAL -->
+    <section id="portal">
+      <div class="sec-head">
+        <span class="eyebrow"><span class="dot dot--resident"></span>İkamet Eden</span>
+        <h2>İkamet Eden Portalı</h2>
+        <span class="where">/portal</span>
+      </div>
+      <p>Site yöneticisi kişi kartından portal erişimi verdiğinde ikamet eden, e-posta adresi ve kendisine iletilen geçici parolayla <span class="path">/giris</span> adresinden girer. Portal telefonda rahat kullanılacak şekilde tasarlanmıştır.</p>
+      <div class="two">
+        <div class="panel"><h4>Özet</h4><p>Güncel borç, yaklaşan son ödeme tarihi ve son duyurular.</p></div>
+        <div class="panel"><h4>Hesabım</h4><p>Yıl yıl hesap hareketleri ve bakiye; <em>PDF İndir</em> ile ekstre.</p></div>
+        <div class="panel"><h4>Online ödeme</h4><p>Kartla aidat ödemesi. Kart bilgisi saklanmaz; makbuzda yalnızca son 4 hane görünür.</p></div>
+        <div class="panel"><h4>Talepler</h4><p>Yönetime arıza veya istek bildirimi ve takip; personelin ikamet edene açık yorumları.</p></div>
+        <div class="panel"><h4>Duyurular ve mesajlar</h4><p>Yönetimin duyuruları ve ikamet edene gönderilen bildirimler.</p></div>
+        <div class="panel"><h4>Profil</h4><p>Parola değiştirme. İlk girişte geçici parolayı değiştirin.</p></div>
+      </div>
+      <p>İkamet eden yalnızca kendi verisini görür; aynı sitedeki başka bir ikamet edenin borcu veya talebi görünmez.</p>
+    </section>
+
+    <!-- ============================================================ KVKK -->
+    <section id="kvkk">
+      <div class="sec-head">
+        <span class="eyebrow">Destek</span>
+        <h2>Kişisel veriler (KVKK)</h2>
+      </div>
+      <ul>
+        <li><strong>Rapor maskesi:</strong> raporlarda kişisel veri maskesi varsayılan olarak açıktır (<code>Ay** Yı****</code>, <code>0532 *** ** 67</code>). Maskeleme sunucuda yapılır; maskesiz veri tarayıcıya hiç gönderilmez. Banka açıklamalarında Türkçe karaktersiz yazılmış adlar da yakalanır.</li>
+        <li><strong>Dışa aktarım kaydı:</strong> her PDF ve Excel indirmesi, kimin hangi raporu maskeli mi aldığıyla birlikte işlem günlüğüne yazılır.</li>
+        <li><strong>TC kimlik no:</strong> ziyaretçi kayıtlarında ve işlem günlüğünde açık tutulmaz.</li>
+        <li><strong>Platform erişimi:</strong> platform yöneticisi müşteri verisine yalnızca gerekçeli ve süreli destek erişimiyle girer; her erişim müşterinin günlüğünde görünür.</li>
+        <li><strong>Geçici parolalar</strong> yalnızca üretildikleri ekranda bir kez gösterilir, saklanmaz.</li>
+      </ul>
+    </section>
+
+    <!-- ============================================================ SSS -->
+    <section id="sss">
+      <div class="sec-head">
+        <span class="eyebrow">Destek</span>
+        <h2>Sorun giderme</h2>
+      </div>
+      <details>
+        <summary>Sayfanın üstünde "Salt okunur" uyarısı var</summary>
+        <div><p>Deneme süresi dolmuş, abonelik süresi geçmiş ya da ödeme gecikmiş. Verilerinizi görebilir ve rapor alabilirsiniz; yeni kayıt için hizmet sağlayıcınızla iletişime geçin. Platform yöneticisi aboneliği güncellediğinde kısıtlama hemen kalkar.</p></div>
+      </details>
+      <details>
+        <summary>Menüde bir modülün yanında kilit simgesi var</summary>
+        <div><p>Modül firmanızın paketinde yok. <span class="path">/firma</span> sayfasında paketinizdeki modülleri görebilirsiniz; paket değişikliği için hizmet sağlayıcınıza başvurun.</p></div>
+      </details>
+      <details>
+        <summary>"Paketinizin daire sınırı doluyor" hatası</summary>
+        <div><p>Paket sınırı firmanızın tüm sitelerindeki aktif daire toplamına uygulanır. Kullanılmayan daireleri pasife alabilir ya da paketi yükselttirebilirsiniz.</p></div>
+      </details>
+      <details>
+        <summary>Daire pasife alınamıyor</summary>
+        <div><p>Dairede oturan kayıtlı. Hata mesajındaki kişilerin kartından <em>Daireler</em> sekmesinde <em>Çıkış Ver</em> ile çıkış tarihi girin, sonra daireyi pasife alın.</p></div>
+      </details>
+      <details>
+        <summary>Toplu aktarımda "dairede zaten malik var" hatası</summary>
+        <div><p>Dairenin bugün geçerli bir maliki (veya kiracısı) var. Yeni kişiyi bağlamadan önce eskisine çıkış verin ya da listeden o satırı çıkarın.</p></div>
+      </details>
+      <details>
+        <summary>İşlenmiş bir tahsilatı düzeltmem gerekiyor</summary>
+        <div><p>İşlenen evrak değiştirilmez; düzeltme iptal edip doğru tutarla yeniden girerek yapılır ve iptalde borçların kapanışı kendiliğinden yeniden hesaplanır. Tek bir tahsilatı iptal eden ekran panelde henüz olmadığından şimdilik hizmet sağlayıcınızdan destek isteyin.</p></div>
+      </details>
+      <details>
+        <summary>İkamet eden giriş yapamıyor</summary>
+        <div><p>Kişi kartında portal erişimi verilmiş mi kontrol edin. Parolasını unuttuysa aynı yerden yeni geçici parola üretin. Firmanın aboneliği askıdaysa ikamet eden de giriş yapamaz.</p></div>
+      </details>
+      <details>
+        <summary>Platform yöneticisi siteye giremiyor</summary>
+        <div><p>Önce müşteri kartından o site için destek erişimi açılmalıdır. Erişimin süresi dolduysa yeniden açın.</p></div>
+      </details>
+    </section>
+  </main>
+</div>
+
+<footer class="foot">
+  <div class="wrap">Site Yönetim Platformu · kullanım kılavuzu, sürüm 0.8 (SaaS). Ekran adları ve menü yolları uygulamadaki adlarla aynıdır.</div>
+</footer>
+
+<script>
+  // İçindekilerde okunan bölümü vurgula (yalnızca kolaylık; içerik bu olmadan da tam)
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll('#toc a'));
+    if (!('IntersectionObserver' in window) || !links.length) return;
+    var byId = {};
+    links.forEach(function (a) { byId[a.getAttribute('href').slice(1)] = a; });
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) { a.classList.remove('is-current'); });
+        var link = byId[entry.target.id];
+        if (link) link.classList.add('is-current');
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    document.querySelectorAll('main section[id]').forEach(function (s) { observer.observe(s); });
+  })();
+</script>
+</body>
+</html>

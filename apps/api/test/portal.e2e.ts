@@ -1,8 +1,8 @@
 /**
- * SAKİN PORTALI UÇTAN UCA TESTİ
+ * İKAMET EDEN PORTALI UÇTAN UCA TESTİ
  *
- *   varsayılan ret (sakin → panel uç noktaları) → özet/ekstre →
- *   aynı sitede sakinler arası izolasyon → talepler (iç not gizliliği) →
+ *   varsayılan ret (ikamet eden → panel uç noktaları) → özet/ekstre →
+ *   aynı sitede ikamet edenler arası izolasyon → talepler (iç not gizliliği) →
  *   duyurular → çevrimiçi ödeme (mock) → portal erişimi verme/kaldırma →
  *   parola değiştirme
  *
@@ -11,6 +11,7 @@
  *   pnpm --filter @sy/api run test:portal
  */
 import { PrismaClient } from '@sy/db';
+import { cleanupTestOrganizations, testOrganization } from './helpers';
 import * as argon2 from 'argon2';
 
 const BASE = process.env.API_BASE ?? 'http://localhost:3101';
@@ -71,13 +72,14 @@ async function login(email: string, password = PASSWORD) {
 
 async function cleanup() {
   await prisma.site.deleteMany({ where: { name: { in: [SITE_NAME, OTHER_SITE_NAME] } } });
+  await cleanupTestOrganizations(prisma);
   await prisma.user.deleteMany({ where: { email: { in: Object.values(EMAILS) } } });
 }
 
 async function setup() {
   await cleanup();
-  const site = await prisma.site.create({ data: { name: SITE_NAME, city: 'Antalya', settings: { create: {} } } });
-  const other = await prisma.site.create({ data: { name: OTHER_SITE_NAME, city: 'Muğla', settings: { create: {} } } });
+  const site = await prisma.site.create({ data: { name: SITE_NAME, organization: testOrganization(SITE_NAME), city: 'Antalya', settings: { create: {} } } });
+  const other = await prisma.site.create({ data: { name: OTHER_SITE_NAME, organization: testOrganization(OTHER_SITE_NAME), city: 'Muğla', settings: { create: {} } } });
   siteId = site.id;
   otherSiteId = other.id;
 
@@ -158,7 +160,7 @@ async function setup() {
 }
 
 async function main(): Promise<void> {
-  console.log('Sakin portalı uçtan uca testi\n');
+  console.log('İkamet Eden Portalı uçtan uca testi\n');
   await setup();
 
   // ---------------------------------------------- 1) varsayılan ret
@@ -180,11 +182,11 @@ async function main(): Promise<void> {
     const res = await api(path);
     if (res.status !== 403) leaks.push(`${path} → ${res.status}`);
   }
-  check(`Sakin ${panelEndpoints.length} panel uç noktasının hiçbirine erişemiyor (403)`, leaks.length === 0, leaks.join(', '));
-  check('Sakin /auth/me ile kendi oturumunu okuyabiliyor', (await api('/auth/me')).status === 200);
+  check(`İkamet eden ${panelEndpoints.length} panel uç noktasının hiçbirine erişemiyor (403)`, leaks.length === 0, leaks.join(', '));
+  check('İkamet eden /auth/me ile kendi oturumunu okuyabiliyor', (await api('/auth/me')).status === 200);
   check('Personel portal uç noktasına erişemiyor (403)', (await api('/portal/summary', { as: 'admin' })).status === 403);
   const unlinked = await api<any>('/portal/summary', { as: 'unlinked' });
-  check('Kişiye bağlı olmayan sakin hesabı reddediliyor (403)', unlinked.status === 403 && unlinked.data.message.includes('kişi kaydına'));
+  check('Kişiye bağlı olmayan ikamet eden hesabı reddediliyor (403)', unlinked.status === 403 && unlinked.data.message.includes('kişi kaydına'));
 
   // ------------------------------------------------ 2) özet ve ekstre
   const summary = await api<any>('/portal/summary');
@@ -224,7 +226,7 @@ async function main(): Promise<void> {
     method: 'POST',
     body: { subject: 'Musluk damlatıyor', description: 'Banyo musluğu', requestType: 'FAULT', unitId: ids.unit_a },
   });
-  check('Sakin kendi dairesi için talep açıyor', created.status === 201 && created.data.number === 1);
+  check('İkamet eden kendi dairesi için talep açıyor', created.status === 201 && created.data.number === 1);
   const ticketId = created.data.id;
 
   const board = await api<any>('/tickets/board', { as: 'admin' });
@@ -247,14 +249,14 @@ async function main(): Promise<void> {
 
   const detail = await api<any>(`/portal/tickets/${ticketId}`);
   check(
-    'Sakin iç notu görmüyor, yalnızca herkese açık yorumları görüyor',
+    'İkamet eden iç notu görmüyor, yalnızca herkese açık yorumları görüyor',
     detail.data.comments.map((c: any) => `${c.author}:${c.body}`).join('|') === 'Yönetim:Yarın ekip gelecek|Siz:Teşekkürler',
     JSON.stringify(detail.data.comments),
   );
-  check('Sakin yanıtında masraf/geçmiş alanı yok', !('expenses' in detail.data) && !('history' in detail.data));
+  check('İkamet eden yanıtında masraf/geçmiş alanı yok', !('expenses' in detail.data) && !('history' in detail.data));
 
   const staffView = await api<any>(`/tickets/${ticketId}`, { as: 'admin' });
-  check('Sakinin yorumu personel tarafında görünüyor', staffView.data.comments.some((c: any) => c.body === 'Teşekkürler'));
+  check('İkamet edenin yorumu personel tarafında görünüyor', staffView.data.comments.some((c: any) => c.body === 'Teşekkürler'));
 
   check(
     'Tamamlanmamış talep puanlanamıyor (400)',
@@ -266,7 +268,7 @@ async function main(): Promise<void> {
     (await api(`/portal/tickets/${ticketId}/survey`, { method: 'PUT', body: { rating: 1 }, as: 'b' })).status === 404,
   );
   const survey = await api<any>(`/portal/tickets/${ticketId}/survey`, { method: 'PUT', body: { rating: 5, comment: 'Hızlı' } });
-  check('Sakin tamamlanan talebi puanlıyor', survey.status === 200 && survey.data.rating === 5);
+  check('İkamet eden tamamlanan talebi puanlıyor', survey.status === 200 && survey.data.rating === 5);
 
   // ------------------------------------------------------- 5) ödeme
   const card4111 = { holder: 'SakinA Test', number: '4111 1111 1111 1111', expiry: '12/30', cvc: '123' };
@@ -284,7 +286,7 @@ async function main(): Promise<void> {
     (await api('/portal/payments', { method: 'POST', body: { amount: 2000, card: card4111 } })).status === 400,
   );
   check(
-    'Borcu olmayan sakin ödeme yapamıyor (400)',
+    'Borcu olmayan ikamet eden ödeme yapamıyor (400)',
     (await api('/portal/payments', { method: 'POST', body: { amount: 10, card: card4111 }, as: 'b' })).status === 400,
   );
 
@@ -312,18 +314,18 @@ async function main(): Promise<void> {
     cLogin.status === 200 && cLogin.data.sites.find((s: any) => s.id === siteId)?.role === 'RESIDENT',
   );
   const cSummary = await api<any>('/portal/summary', { token: cLogin.data.accessToken });
-  check('Yeni sakin kendi özetini görüyor', cSummary.status === 200 && cSummary.data.person.fullName === 'SakinC Test');
+  check('Yeni ikamet eden kendi özetini görüyor', cSummary.status === 200 && cSummary.data.person.fullName === 'SakinC Test');
 
   check(
     'Açık erişim ikinci kez verilemiyor (409)',
     (await api(`/people/${ids.person_c}/portal-access`, { method: 'POST', as: 'admin', body: { email: EMAILS.c } })).status === 409,
   );
   check(
-    'Personel e-postası sakine bağlanamıyor (409)',
+    'Personel e-postası ikamet edene bağlanamıyor (409)',
     (await api(`/people/${ids.person_b}/portal-access`, { method: 'POST', as: 'admin', body: { email: EMAILS.admin } })).status === 409,
   );
   check(
-    'Sakin, portal erişimi veremiyor (403)',
+    'İkamet eden, portal erişimi veremiyor (403)',
     (await api(`/people/${ids.person_c}/portal-access`, { method: 'POST', body: { email: 'x@test.local' } })).status === 403,
   );
   check(
@@ -342,7 +344,7 @@ async function main(): Promise<void> {
   const afterRevoke = await login(EMAILS.c, reset.data.temporaryPassword);
   check('Erişim kaldırılınca site listesinden düşüyor', !afterRevoke.data.sites?.some((s: any) => s.id === siteId));
   check(
-    'Erişimi kaldırılan sakinin eski tokenı reddediliyor (403)',
+    'Erişimi kaldırılan ikamet edenin eski tokenı reddediliyor (403)',
     (await api('/portal/summary', { token: cLogin.data.accessToken })).status === 403,
   );
 

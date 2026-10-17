@@ -17,7 +17,7 @@ import {
 } from '@sy/shared';
 import { PortalService } from './portal.service';
 import { PortalAdminService } from './portal-admin.service';
-import { Roles } from '../common/decorators';
+import { Feature, Roles } from '../common/decorators';
 import { ZodBody, ZodQuery } from '../common/zod-validation.pipe';
 import { AuditService } from '../common/audit.service';
 
@@ -27,11 +27,12 @@ const statementQuerySchema = z.object({
 });
 
 /**
- * SAKİN PORTALI — yalnızca RESIDENT. Kimlik doğrulama katmanı sakini bu
+ * İKAMET EDEN PORTALI — yalnızca RESIDENT. Kimlik doğrulama katmanı ikamet edeni bu
  * işaretli olmayan hiçbir uç noktaya geçirmez (varsayılan ret).
  */
-@ApiTags('Sakin Portalı')
+@ApiTags('İkamet Eden Portalı')
 @Roles('RESIDENT')
+@Feature('portal')
 @Controller('portal')
 export class PortalController {
   constructor(
@@ -130,6 +131,7 @@ export class PortalController {
 
 @ApiTags('İletişim')
 @Roles('SITE_ADMIN', 'ACCOUNTANT')
+@Feature('portal')
 @Controller('announcements')
 export class AnnouncementsController {
   constructor(
@@ -171,6 +173,7 @@ export class AnnouncementsController {
 /** Kişi kartındaki "Portal Erişimi" — hesap açmak/kapatmak yalnızca site yöneticisi */
 @ApiTags('Kişiler')
 @Roles('SITE_ADMIN')
+@Feature('portal')
 @Controller('people/:personId/portal-access')
 export class PortalAccessController {
   constructor(

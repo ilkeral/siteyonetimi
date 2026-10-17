@@ -26,7 +26,7 @@ import {
   type TicketMoveInput,
 } from '@sy/shared';
 import { TicketsService } from './tickets.service';
-import { CurrentUser, Roles, type AuthUser } from '../common/decorators';
+import { Feature, CurrentUser, Roles, type AuthUser } from '../common/decorators';
 import { ZodBody, ZodQuery } from '../common/zod-validation.pipe';
 import { AuditService } from '../common/audit.service';
 
@@ -51,11 +51,12 @@ const listQuerySchema = paginationSchema.merge(filterSchema).extend({
 const FINANCE_ROLES = ['SITE_ADMIN', 'ACCOUNTANT'] as const;
 
 /**
- * Sakinler (RESIDENT) bu uç noktalara erişemez; kendi talepleri Faz 5'teki
+ * İkamet edenler (RESIDENT) bu uç noktalara erişemez; kendi talepleri Faz 5'teki
  * portal uç noktalarından gelecek.
  */
 @ApiTags('İş Takibi')
 @Roles('SITE_ADMIN', 'ACCOUNTANT', 'TECHNICIAN', 'SECURITY')
+@Feature('tickets')
 @Controller('tickets')
 export class TicketsController {
   constructor(
@@ -190,6 +191,7 @@ export class TicketsController {
 }
 
 @ApiTags('İş Takibi')
+@Feature('tickets')
 @Controller('departments')
 export class DepartmentsController {
   constructor(

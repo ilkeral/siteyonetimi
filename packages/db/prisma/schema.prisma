@@ -234,6 +234,111 @@ enum IncidentSeverity {
   HIGH
 }
 
+/// Müşteri hesabının abonelik durumu
+enum OrganizationStatus {
+  TRIAL // deneme süresi (trialEndsAt'e kadar tam erişim)
+  ACTIVE // ücretli, ödemesi güncel
+  PAST_DUE // ödeme gecikti — salt okunur
+  SUSPENDED // askıya alındı — giriş yok
+  CANCELLED // sözleşme bitti — giriş yok
+}
+
+enum OrganizationKind {
+  MANAGEMENT_COMPANY // birden çok site yöneten profesyonel firma
+  SINGLE_SITE // kendi sitesini yöneten site/apartman yönetimi
+}
+
+enum OrganizationRole {
+  OWNER // müşteri hesabının sahibi: site ekler, aboneliği görür
+}
+
+// ---------------------------------------------------------------------------
+// PLATFORM (SaaS) — global, siteId YOK
+// ---------------------------------------------------------------------------
+
+/// Satılan paket: sınırlar ve açık modüller. Fiyatı/sınırları platform
+/// yöneticisi panelden belirler.
+model Plan {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  name         String
+  description  String?
+  /// Aylık liste fiyatı (TL, KDV hariç)
+  monthlyPrice Decimal  @default(0) @db.Decimal(18, 2)
+  /// null = sınırsız
+  maxSites     Int?
+  /// Müşterinin tüm sitelerindeki aktif daire toplamı; null = sınırsız
+  maxUnits     Int?
+  /// Açık modül anahtarları (PLAN_FEATURES)
+  features     String[]
+  isActive     Boolean  @default(true)
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  organizations Organization[]
+}
+
+/// Müşteri: paketin, aboneliğin ve sözleşmenin sahibi. Bir müşterinin birden
+/// çok sitesi olabilir (yönetim şirketi) ya da tek sitesi.
+model Organization {
+  id           String             @id @default(uuid())
+  name         String
+  kind         OrganizationKind   @default(SINGLE_SITE)
+  status       OrganizationStatus @default(TRIAL)
+  planId       String?
+  trialEndsAt  DateTime?
+  /// Ödenmiş abonelik bitişi (ACTIVE iken geçerse salt okunur)
+  paidUntil    DateTime?
+  taxNumber    String?
+  taxOffice    String?
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+  city         String?
+  address      String?
+  note         String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  plan    Plan?                @relation(fields: [planId], references: [id], onDelete: SetNull)
+  sites   Site[]
+  members OrganizationMember[]
+
+  @@index([status])
+}
+
+model OrganizationMember {
+  id             String           @id @default(uuid())
+  organizationId String
+  userId         String
+  role           OrganizationRole @default(OWNER)
+  createdAt      DateTime         @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+}
+
+/// Platform yöneticisinin bir sitenin verisine süreli, gerekçeli erişimi.
+/// Süper yönetici üyeliği olmayan bir siteye yalnızca bununla girer.
+model SupportAccess {
+  id        String    @id @default(uuid())
+  userId    String
+  siteId    String
+  reason    String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([userId, siteId])
+  @@index([siteId, createdAt])
+}
+
 // ---------------------------------------------------------------------------
 // KİMLİK & KİRACILIK  (global — siteId YOK)
 // ---------------------------------------------------------------------------
@@ -251,6 +356,8 @@ model User {
   updatedAt    DateTime @updatedAt
 
   memberships   SiteMembership[]
+  organizations OrganizationMember[]
+  supportAccess SupportAccess[]
   refreshTokens RefreshToken[]
   auditLogs     AuditLog[]
   assignedTickets Ticket[]       @relation("TicketAssignee")
@@ -269,9 +376,13 @@ model Site {
   taxNumber String?
   timezone  String   @default("Europe/Istanbul")
   isActive  Boolean  @default(true)
+  /// Müşteri hesabı — her site bir müşteriye bağlıdır (paket, abonelik, faturalama)
+  organizationId String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  supportAccess SupportAccess[]
   settings      SiteSettings?
   memberships   SiteMembership[]
   blocks        Block[]
@@ -399,6 +510,7 @@ model AuditLog {
 
   @@index([siteId, entityType, entityId])
   @@index([createdAt])
+  @@index([entityType, createdAt])
 }
 
 // ---------------------------------------------------------------------------

@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { api, session, type SiteSummary } from './api';
+import type { PlanFeature } from '@sy/shared';
 
 interface MeResponse {
   user: { id: string; fullName: string; email: string; isSuperAdmin: boolean };
@@ -22,11 +23,18 @@ export function useMe() {
     staleTime: 5 * 60_000,
   });
 
-  const role = data?.sites.find((site) => site.id === session.siteId)?.role ?? null;
+  const site = data?.sites.find((s) => s.id === session.siteId) ?? null;
+  const role = site?.role ?? null;
+  const subscription = site?.subscription ?? null;
 
   return {
     user: data?.user ?? null,
     role,
+    site,
+    /** Aktif sitenin müşteri hesabı ve abonelik durumu */
+    subscription,
+    /** Modül müşterinin paketinde mi (paketsiz / özel sözleşme: hepsi açık) */
+    hasFeature: (feature: PlanFeature) => !subscription?.features || subscription.features.includes(feature),
     /** Oturum bilgisi geldi (rol null ise seçili site bu kullanıcıya ait değil) */
     loaded: isSuccess,
     /** Rollerden birine sahip mi (süper yönetici her şeye sahiptir) */

@@ -17,6 +17,7 @@
     "test:security": "tsx test/security.e2e.ts",
     "test:rls": "tsx test/rls.e2e.ts",
     "test:structure": "tsx test/structure.e2e.ts",
+    "test:platform": "tsx test/platform.e2e.ts",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },

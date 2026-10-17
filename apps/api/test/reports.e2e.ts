@@ -3,13 +3,14 @@
  *
  *   cari ekstre (KVKK maskesi, eşik filtreleri) → PDF + denetim kaydı →
  *   borç yaşlandırma → ödeme skoru (hesap, segment, kıyas gizliliği) →
- *   tahsilat kanalı → sakinin kendi PDF'i → yetki → izolasyon
+ *   tahsilat kanalı → ikamet edenin kendi PDF'i → yetki → izolasyon
  *
  * Kendi izole test sitelerini kurar ve sonunda siler; demo veriye dokunmaz.
  *
  *   pnpm --filter @sy/api run test:reports
  */
 import { PrismaClient, type PaymentChannel } from '@sy/db';
+import { cleanupTestOrganizations, testOrganization } from './helpers';
 import * as argon2 from 'argon2';
 
 const BASE = process.env.API_BASE ?? 'http://localhost:3101';
@@ -71,6 +72,7 @@ async function login(email: string): Promise<string> {
 
 async function cleanup() {
   await prisma.site.deleteMany({ where: { name: { in: [SITE_NAME, OTHER_SITE_NAME] } } });
+  await cleanupTestOrganizations(prisma);
   await prisma.user.deleteMany({ where: { email: { in: Object.values(EMAILS) } } });
 }
 
@@ -116,8 +118,8 @@ async function collect(accountId: string, cashId: string, date: Date, amount: nu
 
 async function setup() {
   await cleanup();
-  const site = await prisma.site.create({ data: { name: SITE_NAME, city: CITY, settings: { create: {} } } });
-  const other = await prisma.site.create({ data: { name: OTHER_SITE_NAME, city: CITY, settings: { create: {} } } });
+  const site = await prisma.site.create({ data: { name: SITE_NAME, organization: testOrganization(SITE_NAME), city: CITY, settings: { create: {} } } });
+  const other = await prisma.site.create({ data: { name: OTHER_SITE_NAME, organization: testOrganization(OTHER_SITE_NAME), city: CITY, settings: { create: {} } } });
   siteId = site.id;
   otherSiteId = other.id;
 
@@ -301,10 +303,10 @@ async function main(): Promise<void> {
   const receipt = await prisma.document.findUnique({ where: { id: cashReceipt.data.id } });
   check('Kasaya tahsilat "elden" kanalıyla kaydedildi', receipt?.paymentChannel === 'CASH');
 
-  // -------------------------------------------- 6) sakinin kendi PDF'i
+  // -------------------------------------------- 6) ikamet edenin kendi PDF'i
   const own = await raw(`/portal/statement/pdf?${range}`, { as: 'resident' });
-  check('Sakin kendi ekstresini PDF indiriyor', own.status === 200 && (await own.arrayBuffer()).byteLength > 1500);
-  check('Sakin site raporuna erişemiyor (403)', (await api(`/reports/statements?${range}`, { as: 'resident' })).status === 403);
+  check('İkamet eden kendi ekstresini PDF indiriyor', own.status === 200 && (await own.arrayBuffer()).byteLength > 1500);
+  check('İkamet eden site raporuna erişemiyor (403)', (await api(`/reports/statements?${range}`, { as: 'resident' })).status === 403);
 
   // ---------------------------------------------------- 7) izolasyon
   const all = await api<any>(`/reports/statements?${range}&mask=false`);

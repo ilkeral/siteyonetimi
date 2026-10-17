@@ -44,7 +44,7 @@ export class AudienceService {
     private readonly config: ConfigService,
   ) {}
 
-  /** Sakin portalının ödeme sayfası — giriş yapan sakin borcunu kartla öder */
+  /** İkamet Eden Portalının ödeme sayfası — giriş yapan ikamet eden borcunu kartla öder */
   private paymentLink(): string {
     const base =
       this.config.get<string>('PUBLIC_WEB_URL') ??

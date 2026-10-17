@@ -2,29 +2,38 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import type { PlanFeature } from '@sy/shared';
+import { useMe } from '@/lib/me';
 
 /**
- * Ana menü — Apsiyon'daki 13 modülün karşılığı.
- * `ready: false` olanlar sonraki fazlarda açılacak; menüde görünür ama
- * tıklanamaz, böylece ürünün bütünü baştan görünür olur.
+ * Ana menü — yalnızca çalışan modüller. Müşterinin paketinde olmayan modül
+ * kilitli görünür ve tıklanamaz (`feature`); asıl denetim API'dedir.
  *
  * İkonlar Material Design Icons (tema ile birlikte geliyor).
  */
+interface MenuChild {
+  href: string;
+  label: string;
+  /** Müşterinin paketinde yoksa kilitli görünür */
+  feature?: PlanFeature;
+}
+
 interface MenuItem {
   href: string;
   label: string;
   icon: string;
-  ready: boolean;
-  children?: { href: string; label: string }[];
+  /** Müşterinin paketinde yoksa kilitli görünür (tıklanamaz) */
+  feature?: PlanFeature;
+  locked?: boolean;
+  children?: (MenuChild & { locked?: boolean })[];
 }
 
 export const MENU: MenuItem[] = [
-  { href: '/ozet', label: 'Özet', icon: 'dashboard', ready: true },
+  { href: '/ozet', label: 'Özet', icon: 'dashboard' },
   {
     href: '/site',
     label: 'Site',
     icon: 'location_city',
-    ready: true,
     children: [
       { href: '/site', label: 'Kişiler' },
       { href: '/site/daireler', label: 'Daireler' },
@@ -35,7 +44,6 @@ export const MENU: MenuItem[] = [
     href: '/finans',
     label: 'Finans',
     icon: 'account_balance_wallet',
-    ready: true,
     children: [
       { href: '/finans', label: 'Cari Hesaplar' },
       { href: '/finans/aidat', label: 'Aidat Tahakkuku' },
@@ -48,7 +56,7 @@ export const MENU: MenuItem[] = [
     href: '/sayac',
     label: 'Sayaç İşlemleri',
     icon: 'av_timer',
-    ready: true,
+    feature: 'meters',
     children: [
       { href: '/sayac', label: 'Dağıtımlar' },
       { href: '/sayac/yeni', label: 'Yeni Dağıtım' },
@@ -58,19 +66,18 @@ export const MENU: MenuItem[] = [
     href: '/raporlar',
     label: 'Raporlar',
     icon: 'assessment',
-    ready: true,
     children: [
       { href: '/raporlar/ekstre', label: 'Cari Ekstre' },
       { href: '/raporlar/yaslandirma', label: 'Borç Yaşlandırma' },
-      { href: '/raporlar/gelir-gider', label: 'Gelir-Gider' },
-      { href: '/raporlar/odeme-skoru', label: 'Ödeme Skoru' },
+      { href: '/raporlar/gelir-gider', label: 'Gelir-Gider', feature: 'reports' },
+      { href: '/raporlar/odeme-skoru', label: 'Ödeme Skoru', feature: 'reports' },
     ],
   },
   {
     href: '/teknik',
     label: 'Teknik',
     icon: 'build',
-    ready: true,
+    feature: 'tickets',
     children: [
       { href: '/teknik', label: 'İş Takibi' },
       { href: '/teknik/liste', label: 'Talep Listesi' },
@@ -81,19 +88,18 @@ export const MENU: MenuItem[] = [
     href: '/iletisim',
     label: 'İletişim',
     icon: 'mail_outline',
-    ready: true,
     children: [
-      { href: '/iletisim', label: 'Bildirimler' },
-      { href: '/iletisim/yeni', label: 'Yeni Bildirim' },
-      { href: '/iletisim/sablonlar', label: 'Şablonlar' },
-      { href: '/iletisim/duyurular', label: 'Duyurular' },
+      { href: '/iletisim', label: 'Bildirimler', feature: 'notifications' },
+      { href: '/iletisim/yeni', label: 'Yeni Bildirim', feature: 'notifications' },
+      { href: '/iletisim/sablonlar', label: 'Şablonlar', feature: 'notifications' },
+      { href: '/iletisim/duyurular', label: 'Duyurular', feature: 'portal' },
     ],
   },
   {
     href: '/guvenlik',
     label: 'Güvenlik',
     icon: 'security',
-    ready: true,
+    feature: 'security',
     children: [
       { href: '/guvenlik', label: 'Özet' },
       { href: '/guvenlik/ziyaretci', label: 'Ziyaretçiler' },
@@ -105,16 +111,19 @@ export const MENU: MenuItem[] = [
     href: '/tanimlar',
     label: 'Tanımlar',
     icon: 'settings',
-    ready: true,
     children: [{ href: '/tanimlar/parametreler', label: 'Parametreler' }],
   },
-  { href: '/ada', label: 'ADA', icon: 'map', ready: false },
-  { href: '/web-sitesi', label: 'Web Sitesi', icon: 'public', ready: false },
-  { href: '/sigorta', label: 'Sigorta', icon: 'verified_user', ready: false },
 ];
 
 export function Sidebar({ mini }: { mini: boolean }) {
   const pathname = usePathname();
+  const { hasFeature } = useMe();
+  // Paketteki modüller: kilit yalnızca arayüz ipucu, asıl denetim API'de (403)
+  const menu = MENU.map((item) => ({
+    ...item,
+    locked: !!item.feature && !hasFeature(item.feature),
+    children: item.children?.map((child) => ({ ...child, locked: !!child.feature && !hasFeature(child.feature) })),
+  }));
 
   function isActive(item: MenuItem): boolean {
     if (item.href === '/site') {
@@ -131,12 +140,9 @@ export function Sidebar({ mini }: { mini: boolean }) {
       </Link>
 
       {!mini && <div className="sidebar-heading">Ana Menü</div>}
-      <MenuList items={MENU.filter((item) => item.ready)} mini={mini} pathname={pathname} />
+      <MenuList items={menu} mini={mini} pathname={pathname} />
 
-      {!mini && <div className="sidebar-heading">Diğer Modüller</div>}
-      <MenuList items={MENU.filter((item) => !item.ready)} mini={mini} pathname={pathname} />
-
-      <div className="sy-sidebar-footer">Sürüm 0.7.0 — Faz 7</div>
+      <div className="sy-sidebar-footer">Sürüm 0.8.0 — SaaS</div>
     </div>
   );
 }
@@ -161,7 +167,8 @@ function MenuList({
     <ul className="sidebar-menu">
       {items.map((item) => {
           const active = isActive(item);
-          const showChildren = active && !mini && item.children && item.ready;
+          const usable = !item.locked;
+          const showChildren = active && !mini && item.children && usable;
 
           return (
             <li
@@ -171,13 +178,13 @@ function MenuList({
                 'sidebar-menu-item',
                 active ? 'active' : '',
                 showChildren ? 'open' : '',
-                item.ready ? '' : 'disabled',
+                usable ? '' : 'disabled',
               ]
                 .filter(Boolean)
                 .join(' ')}
               data-label={item.label}
             >
-              {item.ready ? (
+              {usable ? (
                 <Link href={item.href} className="sidebar-menu-button">
                   <i className="sidebar-menu-icon sidebar-menu-icon--left material-icons">
                     {item.icon}
@@ -185,11 +192,12 @@ function MenuList({
                   <span className="sidebar-menu-text">{item.label}</span>
                 </Link>
               ) : (
-                <span className="sidebar-menu-button" title="Sonraki fazda">
+                <span className="sidebar-menu-button" title="Paketinizde yok">
                   <i className="sidebar-menu-icon sidebar-menu-icon--left material-icons">
                     {item.icon}
                   </i>
                   <span className="sidebar-menu-text">{item.label}</span>
+                  {item.locked && !mini && <i className="material-icons sy-menu-lock" aria-label="Paketinizde yok">lock</i>}
                 </span>
               )}
 
@@ -200,9 +208,16 @@ function MenuList({
                       key={child.href}
                       className={`sidebar-menu-item${pathname === child.href ? ' active' : ''}`}
                     >
-                      <Link href={child.href} className="sidebar-menu-button">
-                        <span className="sidebar-menu-text">{child.label}</span>
-                      </Link>
+                      {child.locked ? (
+                        <span className="sidebar-menu-button sy-menu-locked" title="Paketinizde yok">
+                          <span className="sidebar-menu-text">{child.label}</span>
+                          <i className="material-icons sy-menu-lock" aria-label="Paketinizde yok">lock</i>
+                        </span>
+                      ) : (
+                        <Link href={child.href} className="sidebar-menu-button">
+                          <span className="sidebar-menu-text">{child.label}</span>
+                        </Link>
+                      )}
                     </li>
                   ))}
                 </ul>

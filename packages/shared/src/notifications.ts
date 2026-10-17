@@ -15,7 +15,7 @@ export type NotificationChannel = 'EMAIL' | 'SMS' | 'PUSH' | 'WHATSAPP' | 'VOICE
 
 /**
  * Gönderim sağlayıcısı olan kanallar. PUSH (mobil uygulama) ve POST (basılı
- * mektup) için alıcı adresi tutulmuyor; sakin portalı/mobil ile gelecek.
+ * mektup) için alıcı adresi tutulmuyor; İkamet Eden Portalı/mobil ile gelecek.
  */
 export const SUPPORTED_CHANNELS: readonly NotificationChannel[] = ['EMAIL', 'SMS', 'WHATSAPP', 'VOICE'];
 

@@ -1,0 +1,818 @@
+/*
+ * PLATFORM (SÜPER YÖNETİCİ) PANELİ — ayrı stil dosyası
+ *
+ * Müşteri paneli Bizzark temasını (Bootstrap 4) kullanır; platform paneli
+ * bilinçli olarak ondan bağımsızdır: tema CSS'i bu düzende hiç yüklenmez.
+ * Ayrı görsel kimlik (koyu lacivert kenar çubuğu, indigo vurgu), platform
+ * yöneticisinin hangi tarafta olduğunu her an belli eder.
+ *
+ * Tüm sınıflar `pf-` ön ekli; renkler aşağıdaki değişkenlerde.
+ * Değiştirince app/(platform)/layout.tsx içindeki PLATFORM_CSS_VERSION artırılır.
+ */
+
+:root {
+  --pf-bg: #f4f6fb;
+  --pf-surface: #ffffff;
+  --pf-surface-2: #f8fafc;
+  --pf-border: #e2e8f0;
+  --pf-text: #0f172a;
+  --pf-text-2: #475569;
+  --pf-muted: #64748b;
+  --pf-accent: #4f46e5;
+  --pf-accent-hover: #4338ca;
+  --pf-accent-soft: #eef2ff;
+  --pf-side: #0f172a;
+  --pf-side-2: #1e293b;
+  --pf-side-text: #cbd5e1;
+  --pf-side-active: #ffffff;
+  --pf-success: #15803d;
+  --pf-success-soft: #dcfce7;
+  --pf-warning: #b45309;
+  --pf-warning-soft: #fef3c7;
+  --pf-danger: #b91c1c;
+  --pf-danger-soft: #fee2e2;
+  --pf-info: #0369a1;
+  --pf-info-soft: #e0f2fe;
+  --pf-radius: 10px;
+  --pf-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.08);
+  --pf-font: 'Inter', 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--pf-font);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--pf-text);
+  background: var(--pf-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--pf-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: 22px;
+}
+
+h2 {
+  font-size: 16px;
+}
+
+h3 {
+  font-size: 14px;
+}
+
+.pf-icon {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 20px;
+  line-height: 1;
+  display: inline-block;
+  vertical-align: middle;
+  text-transform: none;
+  letter-spacing: normal;
+  white-space: nowrap;
+  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
+}
+
+/* ---------------------------------------------------------------- iskelet */
+
+.pf-shell {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.pf-side {
+  background: var(--pf-side);
+  color: var(--pf-side-text);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.pf-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 18px 14px;
+  color: #fff;
+  font-weight: 650;
+}
+
+.pf-brand__mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+.pf-brand small {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.pf-nav {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0 10px;
+  flex: 1;
+}
+
+.pf-nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  color: var(--pf-side-text);
+  font-weight: 500;
+}
+
+.pf-nav a:hover {
+  background: var(--pf-side-2);
+  color: #fff;
+  text-decoration: none;
+}
+
+.pf-nav a.is-active {
+  background: var(--pf-side-2);
+  color: var(--pf-side-active);
+  box-shadow: inset 3px 0 0 #818cf8;
+}
+
+.pf-nav .pf-badge {
+  margin-left: auto;
+}
+
+.pf-side__foot {
+  padding: 14px 18px;
+  border-top: 1px solid var(--pf-side-2);
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.pf-side__foot button {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.pf-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pf-top {
+  display: none;
+}
+
+.pf-content {
+  padding: 24px 28px 48px;
+  max-width: 1280px;
+  width: 100%;
+}
+
+.pf-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.pf-head p {
+  margin: 4px 0 0;
+  color: var(--pf-muted);
+}
+
+.pf-crumb {
+  font-size: 12px;
+  color: var(--pf-muted);
+  margin-bottom: 4px;
+}
+
+.pf-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* ---------------------------------------------------------------- kart ve ızgara */
+
+.pf-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.pf-grid--stats {
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  margin-bottom: 20px;
+}
+
+.pf-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pf-grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pf-card {
+  background: var(--pf-surface);
+  border: 1px solid var(--pf-border);
+  border-radius: var(--pf-radius);
+  box-shadow: var(--pf-shadow);
+  min-width: 0;
+}
+
+.pf-card + .pf-card {
+  margin-top: 16px;
+}
+
+.pf-grid > .pf-card + .pf-card {
+  margin-top: 0;
+}
+
+.pf-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--pf-border);
+}
+
+.pf-card__body {
+  padding: 18px;
+}
+
+.pf-card__foot {
+  padding: 12px 18px;
+  border-top: 1px solid var(--pf-border);
+  background: var(--pf-surface-2);
+  border-radius: 0 0 var(--pf-radius) var(--pf-radius);
+}
+
+.pf-stat {
+  padding: 16px 18px;
+}
+
+.pf-stat__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pf-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pf-stat__value {
+  font-size: 26px;
+  font-weight: 700;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.pf-stat__hint {
+  font-size: 12px;
+  color: var(--pf-muted);
+  margin-top: 2px;
+}
+
+.pf-stat--accent {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  border-color: transparent;
+  color: #fff;
+}
+
+.pf-stat--accent .pf-stat__label,
+.pf-stat--accent .pf-stat__hint {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ---------------------------------------------------------------- tablo */
+
+.pf-table-wrap {
+  overflow-x: auto;
+}
+
+.pf-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.pf-table th,
+.pf-table td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--pf-border);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.pf-table th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pf-muted);
+  background: var(--pf-surface-2);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pf-table tbody tr:hover {
+  background: #fafbff;
+}
+
+.pf-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.pf-table .pf-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pf-table .pf-wrap {
+  white-space: normal;
+}
+
+.pf-empty {
+  padding: 32px 18px;
+  text-align: center;
+  color: var(--pf-muted);
+}
+
+/* ---------------------------------------------------------------- rozet */
+
+.pf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--pf-surface-2);
+  color: var(--pf-text-2);
+  border: 1px solid var(--pf-border);
+  white-space: nowrap;
+}
+
+.pf-badge--success {
+  background: var(--pf-success-soft);
+  color: var(--pf-success);
+  border-color: transparent;
+}
+
+.pf-badge--warning {
+  background: var(--pf-warning-soft);
+  color: var(--pf-warning);
+  border-color: transparent;
+}
+
+.pf-badge--danger {
+  background: var(--pf-danger-soft);
+  color: var(--pf-danger);
+  border-color: transparent;
+}
+
+.pf-badge--info {
+  background: var(--pf-info-soft);
+  color: var(--pf-info);
+  border-color: transparent;
+}
+
+.pf-badge--accent {
+  background: var(--pf-accent-soft);
+  color: var(--pf-accent);
+  border-color: transparent;
+}
+
+/* ---------------------------------------------------------------- düğme */
+
+.pf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--pf-border);
+  background: var(--pf-surface);
+  color: var(--pf-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.pf-btn:hover {
+  background: var(--pf-surface-2);
+  text-decoration: none;
+}
+
+.pf-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pf-btn .pf-icon {
+  font-size: 18px;
+}
+
+.pf-btn--primary {
+  background: var(--pf-accent);
+  border-color: var(--pf-accent);
+  color: #fff;
+}
+
+.pf-btn--primary:hover {
+  background: var(--pf-accent-hover);
+}
+
+.pf-btn--danger {
+  color: var(--pf-danger);
+  border-color: #fecaca;
+}
+
+.pf-btn--danger:hover {
+  background: var(--pf-danger-soft);
+}
+
+.pf-btn--ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--pf-accent);
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.pf-btn--sm {
+  padding: 5px 10px;
+  font-size: 13px;
+}
+
+.pf-btn--block {
+  width: 100%;
+}
+
+.pf-side .pf-btn {
+  background: transparent;
+  color: var(--pf-side-text);
+  border-color: var(--pf-side-2);
+}
+
+.pf-side .pf-btn:hover {
+  background: var(--pf-side-2);
+  color: #fff;
+}
+
+/* ---------------------------------------------------------------- form */
+
+.pf-form {
+  display: grid;
+  gap: 14px;
+}
+
+.pf-row {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.pf-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pf-text-2);
+  margin-bottom: 5px;
+}
+
+.pf-field .pf-req {
+  color: var(--pf-danger);
+}
+
+.pf-input,
+.pf-select,
+.pf-textarea {
+  width: 100%;
+  padding: 8px 11px;
+  border: 1px solid var(--pf-border);
+  border-radius: 8px;
+  background: var(--pf-surface);
+  color: var(--pf-text);
+  font: inherit;
+}
+
+.pf-input:focus,
+.pf-select:focus,
+.pf-textarea:focus {
+  outline: none;
+  border-color: var(--pf-accent);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+.pf-input[aria-invalid='true'],
+.pf-select[aria-invalid='true'],
+.pf-textarea[aria-invalid='true'] {
+  border-color: var(--pf-danger);
+}
+
+.pf-hint {
+  font-size: 12px;
+  color: var(--pf-muted);
+  margin-top: 4px;
+}
+
+.pf-error-text {
+  font-size: 12px;
+  color: var(--pf-danger);
+  margin-top: 4px;
+}
+
+.pf-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--pf-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.pf-check input {
+  margin-top: 3px;
+  accent-color: var(--pf-accent);
+}
+
+.pf-check small {
+  display: block;
+  color: var(--pf-muted);
+}
+
+.pf-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.pf-legend {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pf-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-top: 6px;
+  border-top: 1px solid var(--pf-border);
+}
+
+/* ---------------------------------------------------------------- uyarı */
+
+.pf-alert {
+  padding: 11px 14px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  margin-bottom: 14px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.pf-alert--danger {
+  background: var(--pf-danger-soft);
+  color: var(--pf-danger);
+}
+
+.pf-alert--success {
+  background: var(--pf-success-soft);
+  color: var(--pf-success);
+}
+
+.pf-alert--warning {
+  background: var(--pf-warning-soft);
+  color: var(--pf-warning);
+}
+
+.pf-alert--info {
+  background: var(--pf-info-soft);
+  color: var(--pf-info);
+}
+
+/* Bir kez gösterilen geçici parola */
+.pf-secret {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px dashed var(--pf-accent);
+  background: var(--pf-accent-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* ---------------------------------------------------------------- kullanım çubuğu */
+
+.pf-meter {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--pf-surface-2);
+  border: 1px solid var(--pf-border);
+  overflow: hidden;
+}
+
+.pf-meter > span {
+  display: block;
+  height: 100%;
+  background: var(--pf-accent);
+  border-radius: 999px;
+}
+
+.pf-meter--warning > span {
+  background: #d97706;
+}
+
+.pf-meter--danger > span {
+  background: #dc2626;
+}
+
+.pf-usage {
+  display: grid;
+  gap: 6px;
+}
+
+.pf-usage__line {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+/* ---------------------------------------------------------------- liste */
+
+.pf-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pf-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--pf-border);
+}
+
+.pf-list li:last-child {
+  border-bottom: 0;
+}
+
+.pf-muted {
+  color: var(--pf-muted);
+}
+
+.pf-small {
+  font-size: 12px;
+}
+
+.pf-strong {
+  font-weight: 650;
+}
+
+.pf-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.pf-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ---------------------------------------------------------------- giriş */
+
+.pf-auth {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: radial-gradient(1200px 600px at 20% -10%, #312e81 0%, transparent 60%), var(--pf-side);
+}
+
+.pf-auth__card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--pf-surface);
+  border-radius: 14px;
+  padding: 28px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+
+.pf-auth__card .pf-brand {
+  padding: 0 0 18px;
+  color: var(--pf-text);
+}
+
+.pf-loading {
+  min-height: 60vh;
+  display: grid;
+  place-items: center;
+  color: var(--pf-muted);
+}
+
+/* ---------------------------------------------------------------- dar ekran */
+
+@media (max-width: 900px) {
+  .pf-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pf-side {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 260px;
+    z-index: 30;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+
+  .pf-shell.is-open .pf-side {
+    transform: none;
+    box-shadow: 0 0 0 100vmax rgba(15, 23, 42, 0.45);
+  }
+
+  .pf-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: var(--pf-side);
+    color: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+
+  .pf-top button {
+    background: transparent;
+    border: 0;
+    color: #fff;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  .pf-content {
+    padding: 18px 16px 40px;
+  }
+
+  .pf-grid--2,
+  .pf-grid--3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
